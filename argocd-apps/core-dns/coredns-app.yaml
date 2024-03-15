@@ -1,12 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: core-dns
+  name: coredns
 spec:
   project: default
   source:
     repoURL: 'https://github.com/stevenechadwick/homelab'
-    path: config/core-dns
+    path: config/coredns
     targetRevision: HEAD
     kustomize: {}
   destination:
