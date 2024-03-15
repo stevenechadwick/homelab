@@ -4,6 +4,6 @@ resources:
   - added/homelab-local-db-config.yaml
   - base/deployment.yaml
   - base/corefile.yaml
-patchesStrategicMerge:
+patches:
   - patches/deployment-patch.yaml
   - patches/corefile-patch.yaml
