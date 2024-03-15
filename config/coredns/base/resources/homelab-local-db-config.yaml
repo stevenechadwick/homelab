@@ -13,4 +13,5 @@ data:
                         86400      ; minimum (1 day)
                         )
                      IN  NS    ns.homelab.local.
-    ns               IN  A     10.42.0.62
+    ns               IN  A     192.168.86.105
+    *                IN  A     192.168.86.105

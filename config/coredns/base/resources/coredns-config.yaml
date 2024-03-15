@@ -13,10 +13,13 @@ data:
         pods insecure
         fallthrough in-addr.arpa ip6.arpa
       }
-      prometheus :9153
-      forward . /etc/resolv.conf {
-        policy sequential
+      hosts /etc/coredns/NodeHosts {
+        ttl 60
+        reload 15s
+        fallthrough
       }
+      prometheus :9153
+      forward . /etc/resolv.conf
       cache 30
       loop
       reload
@@ -27,3 +30,7 @@ data:
       errors
       log
     }
+    import /etc/coredns/custom/*.server
+  NodeHosts: |
+    192.168.86.101 node01
+    192.168.86.103 node03
