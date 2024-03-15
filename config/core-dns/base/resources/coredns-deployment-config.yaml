@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coredns
+spec:
+  template:
+    spec:
+      volumes:
+        - name: homelab-local-db
+          configMap:
+            name: homelab-local-db
+      containers:
+        - name: coredns
+          volumeMounts:
+            - name: homelab-local-db
+              mountPath: /etc/coredns

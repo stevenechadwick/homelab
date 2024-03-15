@@ -1,9 +1,15 @@
-homelab.local.    IN  SOA   ns.homelab.local. admin.homelab.local. (
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homelab-local-db
+data:
+  homelab.local.db: |
+    homelab.local.    IN  SOA   ns.homelab.local. admin.homelab.local. (
                         2022031201 ; serial
                         3600       ; refresh (1 hour)
                         600        ; retry (10 minutes)
                         604800     ; expire (1 week)
                         86400      ; minimum (1 day)
                         )
-                 IN  NS    ns.homelab.local.
-ns               IN  A     10.42.0.62
+                     IN  NS    ns.homelab.local.
+    ns               IN  A     10.42.0.62
