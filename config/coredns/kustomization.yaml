@@ -1,4 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - base/resources
+  - base/resources/homelab-local-db-config.yaml
+  - base/resources/coredns-deployment-config.yaml
+  - base/resources/coredns-config.yaml
