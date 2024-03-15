@@ -13,5 +13,5 @@ patches:
   - path: patches/corefile-patch.yaml
     target:
       kind: ConfigMap
-      name: coredns
+      name: corefile
       namespace: kube-system
