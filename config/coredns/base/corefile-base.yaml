@@ -5,7 +5,7 @@ metadata:
   namespace: kube-system
 data:
   Corefile: |
-    .:53 {
+  .:53 {
       errors
       health
       ready
@@ -24,13 +24,7 @@ data:
       loop
       reload
       loadbalance
+      import /etc/coredns/custom/*.override
     }
-    homelab.local:53 {
-      file /etc/coredns/homelab.local.db
-      errors
-      log
-    }
-    import /etc/coredns/custom/*.server
-  NodeHosts: |
-    192.168.86.101 node01
-    192.168.86.103 node03
+  }
+  import /etc/coredns/custom/*.server
