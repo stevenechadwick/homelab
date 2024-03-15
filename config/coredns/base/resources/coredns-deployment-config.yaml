@@ -10,8 +10,15 @@ spec:
         - name: homelab-local-db
           configMap:
             name: homelab-local-db
+        - name: config-volume
+          configMap:
+            name: coredns
       containers:
         - name: coredns
           volumeMounts:
             - name: homelab-local-db
+              mountPath: /etc/coredns
+        - name: coredns
+          volumeMounts:
+            - name: 
               mountPath: /etc/coredns
