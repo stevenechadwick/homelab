@@ -14,4 +14,5 @@ spec:
         - name: coredns
           volumeMounts:
             - name: homelab-local-db
-              mountPath: /etc/coredns
+              mountPath: /etc/coredns/homelab.local.db
+              subPath: homelab.local.db
