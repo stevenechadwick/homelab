@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: coredns
+  name: Corefile
   namespace: kube-system
 data:
   Corefile: |
