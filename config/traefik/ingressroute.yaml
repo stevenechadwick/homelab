@@ -1,14 +1,19 @@
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
-  name: homelab-ingressroute
+  name: traefik-ingressroute
   namespace: kube-system
 spec:
   entryPoints:
     - web
   routes:
-  - match: Host(`homelab.local`)
+  - match: Host(`traefik.homelab.local`)
     kind: Rule
     services:
-    - name: traefik
-      port: 80
+    - name: api@internal
+      kind: TraefikService
+  - match: PathPrefix(`/dashboard`)
+    kind: Rule
+    services:
+    - name: api@internal
+      kind: TraefikService
