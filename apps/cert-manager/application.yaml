@@ -8,7 +8,12 @@ spec:
   source:
     repoURL: https://github.com/jetstack/cert-manager.git
     targetRevision: release-1.14.4
-    path: deploy/charts/cert-manager
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+      - name: installCRDs
+        value: "true"
   destination:
     server: https://kubernetes.default.svc
     namespace: cert-manager
