@@ -12,8 +12,10 @@ spec:
     services:
     - name: api@internal
       kind: TraefikService
+      port: 80
   - match: PathPrefix(`/dashboard`)
     kind: Rule
     services:
     - name: api@internal
       kind: TraefikService
+      port: 80
