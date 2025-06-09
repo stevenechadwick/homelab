@@ -1,0 +1,17 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: rancher-server
+  namespace: cattle-system
+spec:
+  entryPoints:
+  - web
+  - websecure
+  routes:
+  - match: Host(`rancher.homelab.local`)
+    kind: Rule
+    services:
+    - name: rancher
+      port: 80
+  tls:
+    certResolver: default

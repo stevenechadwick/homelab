@@ -1,0 +1,17 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: qbittorrent
+  namespace: media
+spec:
+  entryPoints:
+  - web
+  - websecure
+  routes:
+  - match: Host(`qbittorrent.homelab.local`)
+    kind: Rule
+    services:
+    - name: qbittorrent
+      port: 8080
+  tls:
+    certResolver: default

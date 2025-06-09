@@ -1,0 +1,17 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: homepage
+  namespace: homepage
+spec:
+  entryPoints:
+  - web
+  - websecure
+  routes:
+  - match: Host(`homepage.homelab.local`) || Host(`homelab.local`) || Host(`dashboard.homelab.local`)
+    kind: Rule
+    services:
+    - name: homepage
+      port: 3000
+  tls:
+    certResolver: default

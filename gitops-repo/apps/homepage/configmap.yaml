@@ -1,0 +1,140 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage-config
+  namespace: homepage
+data:
+  settings.yaml: |
+    title: Homelab Dashboard
+    favicon: https://github.com/gethomepage/homepage/raw/main/public/android-chrome-192x192.png
+    theme: dark
+    color: slate
+    headerStyle: clean
+    layout:
+      Management:
+        style: row
+        columns: 3
+      Media:
+        style: row
+        columns: 4
+      Monitoring:
+        style: row
+        columns: 2
+      Infrastructure:
+        style: row
+        columns: 3
+
+  services.yaml: |
+    - Management:
+        - ArgoCD:
+            href: https://argocd.homelab.local
+            description: GitOps Continuous Deployment
+            icon: argocd.png
+            server: my-argocd
+            namespace: argocd
+
+        - Rancher:
+            href: https://rancher.homelab.local
+            description: Kubernetes Management
+            icon: rancher.png
+
+        - Grafana:
+            href: https://grafana.homelab.local
+            description: Monitoring & Observability
+            icon: grafana.png
+
+    - Media:
+        - Plex:
+            href: https://plex.homelab.local
+            description: Media Server
+            icon: plex.png
+
+        - Radarr:
+            href: https://radarr.homelab.local
+            description: Movie Collection Manager
+            icon: radarr.png
+
+        - Sonarr:
+            href: https://sonarr.homelab.local
+            description: TV Show Manager
+            icon: sonarr.png
+
+        - Prowlarr:
+            href: https://prowlarr.homelab.local
+            description: Indexer Manager
+            icon: prowlarr.png
+
+        - qBittorrent:
+            href: https://qbittorrent.homelab.local
+            description: Download Client
+            icon: qbittorrent.png
+
+    - Infrastructure:
+        - Longhorn:
+            href: http://192.168.87.11/k8s/clusters/local/api/v1/namespaces/longhorn-system/services/http:longhorn-frontend:80/proxy/
+            description: Distributed Storage
+            icon: longhorn.png
+
+        - Traefik:
+            href: http://192.168.87.10:8080
+            description: Reverse Proxy & Load Balancer
+            icon: traefik.png
+
+        - MetalLB:
+            description: Bare Metal Load Balancer
+            icon: metallb.png
+
+  widgets.yaml: |
+    - logo:
+        icon: https://github.com/gethomepage/homepage/raw/main/public/android-chrome-192x192.png
+
+    - greeting:
+        text_size: xl
+        text: "Welcome to your Homelab!"
+
+    - kubernetes:
+        cluster:
+          show: true
+          cpu: true
+          memory: true
+          showLabel: true
+          label: "cluster"
+        nodes:
+          show: true
+          cpu: true
+          memory: true
+          showLabel: true
+
+    - resources:
+        backend: kubernetes
+        expanded: true
+        cpu: true
+        memory: true
+
+    - search:
+        provider: [duckduckgo, google]
+        focus: false
+        target: _blank
+
+  kubernetes.yaml: |
+    mode: cluster
+
+  docker.yaml: ""
+
+  bookmarks.yaml: |
+    - Homelab Links:
+        - Documentation:
+            - href: https://github.com/gethomepage/homepage
+              description: Homepage Documentation
+
+        - Kubernetes:
+            - href: https://kubernetes.io/docs/
+              description: Kubernetes Documentation
+            - href: https://k3s.io/
+              description: K3s Documentation
+
+        - Media Management:
+            - href: https://wiki.servarr.com/
+              description: Servarr Wiki (Radarr/Sonarr/etc)
+            - href: https://support.plex.tv/
+              description: Plex Support

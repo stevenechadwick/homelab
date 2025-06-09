@@ -1,0 +1,62 @@
+---
+- name: Uninstall k3s from all nodes
+  hosts: k3s_cluster
+  become: yes
+  tasks:
+    - name: Stop k3s services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+      loop:
+        - k3s
+        - k3s-agent
+      failed_when: false
+      
+    - name: Run k3s uninstall script on master
+      shell: /usr/local/bin/k3s-uninstall.sh
+      when: k3s_role == "master"
+      failed_when: false
+      
+    - name: Run k3s agent uninstall script on workers
+      shell: /usr/local/bin/k3s-agent-uninstall.sh
+      when: k3s_role == "worker"
+      failed_when: false
+      
+    - name: Remove k3s directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/rancher
+        - /var/lib/rancher
+        - /var/lib/kubelet
+        - /etc/kubernetes
+        - /usr/local/bin/k3s
+        - /usr/local/bin/k3s-uninstall.sh
+        - /usr/local/bin/k3s-agent-uninstall.sh
+        - /usr/local/bin/kubectl
+        - /usr/local/bin/crictl
+        - /usr/local/bin/ctr
+        
+    - name: Remove k3s systemd files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/systemd/system/k3s.service
+        - /etc/systemd/system/k3s-agent.service
+        
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+        
+    - name: Remove k3s network interfaces
+      shell: |
+        ip link delete cni0 2>/dev/null || true
+        ip link delete flannel.1 2>/dev/null || true
+        iptables-save | grep -v KUBE | iptables-restore
+      failed_when: false
+      
+    - name: Reboot nodes to ensure clean state
+      reboot:
+        reboot_timeout: 300

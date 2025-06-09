@@ -1,0 +1,44 @@
+---
+- name: Install k3s cluster with correct IP configuration
+  hosts: k3s_cluster
+  become: yes
+  vars:
+    k3s_version: v1.28.8+k3s1
+    k3s_token: "homelab-k3s-token-2025"
+    cluster_cidr: "10.42.0.0/16"
+    service_cidr: "10.43.0.0/16"
+    
+  tasks:
+    - name: Wait for nodes to be accessible after reboot
+      wait_for_connection:
+        timeout: 300
+        
+    - name: Install k3s on master node
+      shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION={{ k3s_version }} sh -s - server \
+          --token={{ k3s_token }} \
+          --cluster-cidr={{ cluster_cidr }} \
+          --service-cidr={{ service_cidr }} \
+          --node-external-ip={{ ansible_host }} \
+          --bind-address={{ ansible_host }} \
+          --advertise-address={{ ansible_host }} \
+          --disable=servicelb \
+          --tls-san={{ ansible_host }}
+      when: k3s_role == "master"
+      
+    - name: Wait for k3s master to be ready
+      wait_for:
+        port: 6443
+        host: "{{ ansible_host }}"
+        timeout: 300
+      when: k3s_role == "master"
+      
+    - name: Install k3s on worker nodes
+      shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION={{ k3s_version }} K3S_URL=https://{{ hostvars['node01']['ansible_host'] }}:6443 K3S_TOKEN={{ k3s_token }} sh -s - agent \
+          --node-external-ip={{ ansible_host }}
+      when: k3s_role == "worker"
+      
+    - name: Wait for all nodes to be ready
+      pause:
+        seconds: 30

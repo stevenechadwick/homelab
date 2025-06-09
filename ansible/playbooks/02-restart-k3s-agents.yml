@@ -1,0 +1,32 @@
+---
+- name: Restart k3s agents on worker nodes to fix IP addresses
+  hosts: workers
+  become: yes
+  tasks:
+    - name: Stop k3s-agent
+      systemd:
+        name: k3s-agent
+        state: stopped
+        
+    - name: Wait a moment
+      pause:
+        seconds: 5
+        
+    - name: Start k3s-agent
+      systemd:
+        name: k3s-agent
+        state: started
+        enabled: yes
+        
+    - name: Wait for agent to be ready
+      pause:
+        seconds: 10
+        
+    - name: Check k3s-agent status
+      systemd:
+        name: k3s-agent
+      register: k3s_status
+      
+    - name: Display status
+      debug:
+        var: k3s_status.status.ActiveState

@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homepage
+  namespace: homepage
+  labels:
+    app: homepage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homepage
+  template:
+    metadata:
+      labels:
+        app: homepage
+    spec:
+      serviceAccountName: homepage-serviceaccount
+      containers:
+      - name: homepage
+        image: ghcr.io/gethomepage/homepage:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: HOMEPAGE_VAR_TITLE
+          value: "Homelab Dashboard"
+        - name: HOMEPAGE_VAR_SEARCH_PROVIDER
+          value: "duckduckgo"
+        - name: HOMEPAGE_VAR_HEADER_STYLE
+          value: "clean"
+        - name: HOMEPAGE_VAR_WEATHER_API_KEY
+          value: ""
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        - name: logs
+          mountPath: /app/config/logs
+      volumes:
+      - name: config
+        configMap:
+          name: homepage-config
+      - name: logs
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: homepage-serviceaccount
+  namespace: homepage
+  labels:
+    app: homepage
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: homepage-role
+rules:
+- apiGroups: [""]
+  resources: ["namespaces", "pods", "nodes"]
+  verbs: ["get", "list"]
+- apiGroups: ["extensions", "networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list"]
+- apiGroups: ["traefik.containo.us", "traefik.io"]
+  resources: ["ingressroutes"]
+  verbs: ["get", "list"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: homepage-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: homepage-role
+subjects:
+- kind: ServiceAccount
+  name: homepage-serviceaccount
+  namespace: homepage

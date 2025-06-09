@@ -1,0 +1,17 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: plex
+  namespace: media
+spec:
+  entryPoints:
+  - web
+  - websecure
+  routes:
+  - match: Host(`plex.homelab.local`)
+    kind: Rule
+    services:
+    - name: plex
+      port: 32400
+  tls:
+    certResolver: default
