@@ -1,6 +1,8 @@
 # Credentials and sensitive files
 .credentials
 kubeconfig-*
+*.pat
+*.token
 
 # Documentation (local only)
 documentation/
