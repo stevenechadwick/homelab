@@ -17,7 +17,7 @@ spec:
   source:
     repoURL: https://github.com/stevenechadwick/homelab.git
     targetRevision: HEAD
-    path: gitops-repo/infrastructure
+    path: kubernetes/infrastructure
   destination:
     server: https://kubernetes.default.svc
     namespace: default
@@ -38,7 +38,7 @@ spec:
   source:
     repoURL: https://github.com/stevenechadwick/homelab.git
     targetRevision: HEAD
-    path: gitops-repo/apps
+    path: kubernetes/apps
   destination:
     server: https://kubernetes.default.svc
     namespace: default
@@ -59,7 +59,7 @@ spec:
   source:
     repoURL: https://github.com/stevenechadwick/homelab.git
     targetRevision: HEAD
-    path: gitops-repo/monitoring
+    path: kubernetes/monitoring
   destination:
     server: https://kubernetes.default.svc
     namespace: default

@@ -29,7 +29,7 @@
 ### 3. Apply ArgoCD Applications
 ```bash
 # Apply the ArgoCD applications (no secrets in this file)
-kubectl apply -f argocd-repo-config.yaml
+kubectl apply -f kubernetes/argocd-repo-config.yaml
 ```
 
 ### 3. Access ArgoCD UI
@@ -53,7 +53,7 @@ Once configured, any changes pushed to the GitHub repository will automatically 
 
 ## Repository Structure
 ```
-gitops-repo/
+kubernetes/
 ├── infrastructure/     # Core infrastructure (MetalLB, cert-manager, etc.)
 ├── apps/              # Applications (media stack, homepage, etc.)
 ├── monitoring/        # Monitoring stack (Prometheus, Grafana)
@@ -65,3 +65,4 @@ gitops-repo/
 - Applications will create namespaces automatically
 - All manifests should be committed to the GitHub repository
 - Local documentation/ folder is git-ignored for security
+- Run from scripts/ directory: `../scripts/create-github-secret.sh`
