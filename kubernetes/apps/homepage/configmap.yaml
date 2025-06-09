@@ -75,6 +75,11 @@ data:
             description: Distributed Storage
             icon: longhorn.png
 
+        - PiHole:
+            href: https://pihole.homelab.local
+            description: DNS & Ad Blocker
+            icon: pihole.png
+
         - Traefik:
             href: http://192.168.87.10:8080
             description: Reverse Proxy & Load Balancer
