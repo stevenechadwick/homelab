@@ -40,7 +40,7 @@ kubectl apply -f kubernetes/argocd-repo-config.yaml
 ### 4. Verify Applications
 The following ArgoCD Applications will be created:
 - `homelab-infrastructure` - Core infrastructure components
-- `homelab-apps` - Application stack (media, homepage, etc.)
+- `homelab-apps` - Application stack (media, homepage, pihole, etc.)
 - `homelab-monitoring` - Monitoring stack (Prometheus, Grafana)
 
 ### 5. GitOps Workflow
@@ -55,7 +55,7 @@ Once configured, any changes pushed to the GitHub repository will automatically 
 ```
 kubernetes/
 ├── infrastructure/     # Core infrastructure (MetalLB, cert-manager, etc.)
-├── apps/              # Applications (media stack, homepage, etc.)
+├── apps/              # Applications (media stack, homepage, pihole, etc.)
 ├── monitoring/        # Monitoring stack (Prometheus, Grafana)
 └── clusters/          # Cluster-specific configurations
 ```
