@@ -1,0 +1,61 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard
+  namespace: kube-system
+spec:
+  entryPoints:
+  - web
+  - websecure
+  routes:
+  - match: Host(`traefik.homelab.local`)
+    kind: Rule
+    middlewares:
+    - name: authelia
+    - name: traefik-dashboard-redirect
+    services:
+    - name: traefik-dashboard
+      port: 9000
+  tls:
+    secretName: traefik-homelab-tls
+---
+# Create authelia middleware in kube-system namespace
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: authelia
+  namespace: kube-system
+spec:
+  forwardAuth:
+    address: http://authelia-simple.authelia.svc.cluster.local/api/verify?rd=https://auth.homelab.local
+    trustForwardHeader: true
+    authResponseHeaders:
+      - Remote-User
+      - Remote-Groups
+      - Remote-Name
+      - Remote-Email
+---
+# Redirect to dashboard path
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: traefik-dashboard-redirect
+  namespace: kube-system
+spec:
+  redirectRegex:
+    regex: ^https://traefik\.homelab\.local/$
+    replacement: https://traefik.homelab.local/dashboard/
+    permanent: false
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: traefik-homelab-tls
+  namespace: kube-system
+spec:
+  secretName: traefik-homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - traefik.homelab.local

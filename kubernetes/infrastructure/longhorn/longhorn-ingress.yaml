@@ -1,0 +1,62 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: longhorn
+  namespace: longhorn-system
+spec:
+  entryPoints:
+  - web
+  - websecure
+  routes:
+  - match: Host(`longhorn.homelab.local`)
+    kind: Rule
+    middlewares:
+    - name: authelia
+    - name: longhorn-headers
+    services:
+    - name: longhorn-frontend
+      port: 80
+  tls:
+    secretName: longhorn-homelab-tls
+---
+# Add headers middleware for Longhorn
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: longhorn-headers
+  namespace: longhorn-system
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-Proto: "https"
+      X-Forwarded-For: ""
+      X-Forwarded-Host: "longhorn.homelab.local"
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: longhorn-homelab-tls
+  namespace: longhorn-system
+spec:
+  secretName: longhorn-homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - longhorn.homelab.local
+---
+# Create authelia middleware in longhorn-system namespace
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: authelia
+  namespace: longhorn-system
+spec:
+  forwardAuth:
+    address: http://authelia-simple.authelia.svc.cluster.local/api/verify?rd=https://auth.homelab.local
+    trustForwardHeader: true
+    authResponseHeaders:
+      - Remote-User
+      - Remote-Groups
+      - Remote-Name
+      - Remote-Email

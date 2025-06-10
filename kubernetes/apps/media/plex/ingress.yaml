@@ -10,8 +10,10 @@ spec:
   routes:
   - match: Host(`plex.homelab.local`)
     kind: Rule
+    middlewares:
+    - name: authelia
     services:
     - name: plex
       port: 32400
   tls:
-    certResolver: default
+    secretName: media-homelab-tls

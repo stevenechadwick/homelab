@@ -32,6 +32,7 @@ spec:
           mountPath: /config
         - name: tv
           mountPath: /tv
+          subPath: tv
         - name: downloads
           mountPath: /downloads
       volumes:

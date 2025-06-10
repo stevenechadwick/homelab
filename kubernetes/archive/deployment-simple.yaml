@@ -1,0 +1,176 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent-vpn
+  namespace: media
+  labels:
+    app: qbittorrent-vpn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qbittorrent-vpn
+  template:
+    metadata:
+      labels:
+        app: qbittorrent-vpn
+    spec:
+      containers:
+      # VPN Container - Gluetun
+      - name: gluetun
+        image: qmcgaw/gluetun:latest
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+        env:
+        - name: VPN_SERVICE_PROVIDER
+          value: "protonvpn"
+        - name: VPN_TYPE
+          value: "openvpn"
+        - name: OPENVPN_USER
+          valueFrom:
+            secretKeyRef:
+              name: proton-vpn-credentials
+              key: username
+        - name: OPENVPN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: proton-vpn-credentials
+              key: password
+        # Toronto P2P servers
+        - name: SERVER_COUNTRIES
+          value: "Canada"
+        - name: SERVER_CITIES
+          value: "Toronto"
+        - name: FREE_ONLY
+          value: "off"
+        # Network and firewall settings
+        - name: FIREWALL
+          value: "on"
+        - name: FIREWALL_OUTBOUND_SUBNETS
+          value: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+        - name: HEALTH_VPN_DURATION_INITIAL
+          value: "60s"
+        - name: HEALTH_SUCCESS_WAIT_DURATION
+          value: "10s"
+        - name: LOG_LEVEL
+          value: "info"
+        ports:
+        - containerPort: 8080
+          name: webui
+        - containerPort: 6881
+          name: torrent-tcp
+          protocol: TCP
+        - containerPort: 6881
+          name: torrent-udp
+          protocol: UDP
+        - containerPort: 8000
+          name: gluetun-control
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        # Simplified health check - just check if container is running
+        livenessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - "ps aux | grep -v grep | grep gluetun"
+          initialDelaySeconds: 120
+          periodSeconds: 60
+
+      # qBittorrent Container
+      - name: qbittorrent
+        image: lscr.io/linuxserver/qbittorrent:latest
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "America/Toronto"
+        - name: WEBUI_PORT
+          value: "8080"
+        - name: QBT_WEBUI_BIND_ADDRESS
+          value: "0.0.0.0"
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: downloads
+          mountPath: /downloads
+        - name: incomplete-downloads
+          mountPath: /incomplete-downloads
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        # Simple health check - just check if process is running
+        livenessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - "ps aux | grep -v grep | grep qbittorrent"
+          initialDelaySeconds: 180
+          periodSeconds: 60
+          
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: qbittorrent-config
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: media-storage-2
+      - name: incomplete-downloads
+        emptyDir:
+          sizeLimit: 50Gi
+
+---
+# Service remains the same
+apiVersion: v1
+kind: Service
+metadata:
+  name: qbittorrent-vpn
+  namespace: media
+  labels:
+    app: qbittorrent-vpn
+spec:
+  selector:
+    app: qbittorrent-vpn
+  ports:
+  - name: webui
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: torrent-tcp
+    port: 6881
+    targetPort: 6881
+    protocol: TCP
+  - name: torrent-udp
+    port: 6881
+    targetPort: 6881
+    protocol: UDP
+  type: ClusterIP
+
+---
+# PVC remains the same
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-config
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi

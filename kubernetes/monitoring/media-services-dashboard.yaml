@@ -1,0 +1,174 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: media-services-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  media-services-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Media Services Overview",
+        "tags": ["media", "homelab"],
+        "style": "dark",
+        "timezone": "browser",
+        "editable": true,
+        "graphTooltip": 0,
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Service Status Overview",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=~\"plex-exporter|exportarr-.*|qbittorrent-exporter\"}",
+                "legendFormat": "{{job}}",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Plex Sessions",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "plex_sessions_active_total",
+                "legendFormat": "Active Sessions"
+              }
+            ],
+            "yAxes": [
+              {"label": "Sessions", "min": 0}
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 3,
+            "title": "Media Library Sizes",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "plex_library_section_size",
+                "legendFormat": "{{section_name}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Radarr Queue",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "radarr_queue_total",
+                "legendFormat": "Queue Items"
+              }
+            ],
+            "yAxes": [
+              {"label": "Items", "min": 0}
+            ],
+            "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16}
+          },
+          {
+            "id": 5,
+            "title": "Sonarr Queue",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sonarr_queue_total",
+                "legendFormat": "Queue Items"
+              }
+            ],
+            "yAxes": [
+              {"label": "Items", "min": 0}
+            ],
+            "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "qBittorrent Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "qbittorrent_torrents_count",
+                "legendFormat": "Total Torrents"
+              },
+              {
+                "expr": "qbittorrent_torrents_count{state=\"downloading\"}",
+                "legendFormat": "Downloading"
+              },
+              {
+                "expr": "qbittorrent_torrents_count{state=\"seeding\"}",
+                "legendFormat": "Seeding"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16}
+          },
+          {
+            "id": 7,
+            "title": "Download/Upload Speed",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(qbittorrent_global_download_bytes[5m])",
+                "legendFormat": "Download Speed"
+              },
+              {
+                "expr": "rate(qbittorrent_global_upload_bytes[5m])",
+                "legendFormat": "Upload Speed"
+              }
+            ],
+            "yAxes": [
+              {"label": "Bytes/sec", "min": 0}
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+          },
+          {
+            "id": 8,
+            "title": "Prowlarr Indexers",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "prowlarr_indexer_count",
+                "legendFormat": "Total Indexers"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+          }
+        ]
+      }
+    }

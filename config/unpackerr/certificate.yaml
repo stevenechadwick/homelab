@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: unpackerr-homelab-tls
+  namespace: media
+spec:
+  secretName: unpackerr-homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - unpackerr.homelab.local

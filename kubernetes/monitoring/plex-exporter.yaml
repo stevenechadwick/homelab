@@ -1,0 +1,73 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plex-exporter
+  namespace: monitoring
+  labels:
+    app: plex-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: plex-exporter
+  template:
+    metadata:
+      labels:
+        app: plex-exporter
+    spec:
+      containers:
+      - name: plex-exporter
+        image: granra/plex_exporter:latest
+        ports:
+        - containerPort: 9594
+          name: metrics
+        env:
+        - name: PLEX_URL
+          value: "http://plex.media.svc.cluster.local:32400"
+        - name: PLEX_TOKEN
+          value: "YOUR_PLEX_TOKEN"  # Replace with actual token
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: plex-exporter
+  namespace: monitoring
+  labels:
+    app: plex-exporter
+spec:
+  selector:
+    app: plex-exporter
+  ports:
+  - name: metrics
+    port: 9594
+    targetPort: metrics
+  type: ClusterIP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: plex-exporter
+  namespace: monitoring
+  labels:
+    app: plex-exporter
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: plex-exporter
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - monitoring

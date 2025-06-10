@@ -10,6 +10,9 @@ spec:
   routes:
   - match: Host(`rancher.homelab.local`)
     kind: Rule
+    middlewares:
+    - name: authelia
+      
     services:
     - name: rancher
       port: 80

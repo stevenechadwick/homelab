@@ -10,8 +10,10 @@ spec:
   routes:
   - match: Host(`radarr.homelab.local`)
     kind: Rule
+    middlewares:
+    - name: authelia
     services:
     - name: radarr
       port: 7878
   tls:
-    certResolver: default
+    secretName: media-homelab-tls

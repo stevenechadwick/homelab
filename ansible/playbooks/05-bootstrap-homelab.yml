@@ -1,0 +1,84 @@
+---
+- name: Bootstrap complete homelab from fresh k3s install
+  hosts: master
+  become: yes
+  vars:
+    argocd_version: v2.8.3
+    argocd_namespace: argocd
+    repo_url: https://github.com/stevenechadwick/homelab.git
+    
+  tasks:
+    - name: Wait for k3s to be ready
+      k8s_info:
+        api_version: v1
+        kind: Node
+      register: nodes
+      until: nodes.resources | length > 0
+      retries: 30
+      delay: 10
+
+    - name: Create ArgoCD namespace
+      k8s:
+        name: "{{ argocd_namespace }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Install ArgoCD
+      k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: argocd-install
+            namespace: "{{ argocd_namespace }}"
+        src: https://raw.githubusercontent.com/argoproj/argo-cd/{{ argocd_version }}/manifests/install.yaml
+
+    - name: Wait for ArgoCD server to be ready
+      k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: argocd-server
+        namespace: "{{ argocd_namespace }}"
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 600
+
+    - name: Apply ArgoCD applications configuration
+      k8s:
+        state: present
+        src: "{{ repo_url }}/raw/main/kubernetes/argocd-repo-config.yaml"
+
+    - name: Create required secrets for applications
+      debug:
+        msg: |
+          MANUAL STEP REQUIRED:
+          After this playbook completes, you must create the following secrets:
+
+          1. Proton VPN credentials:
+          kubectl create secret generic proton-vpn-config -n media \
+            --from-literal=username="YOUR_VPN_USERNAME" \
+            --from-literal=password="YOUR_VPN_PASSWORD"
+
+          2. Media API keys:
+          kubectl create secret generic media-api-keys -n media \
+            --from-literal=radarr-api-key="YOUR_RADARR_API_KEY" \
+            --from-literal=sonarr-api-key="YOUR_SONARR_API_KEY" \
+            --from-literal=prowlarr-api-key="YOUR_PROWLARR_API_KEY"
+
+          kubectl create secret generic media-api-keys -n monitoring \
+            --from-literal=radarr-api-key="YOUR_RADARR_API_KEY" \
+            --from-literal=sonarr-api-key="YOUR_SONARR_API_KEY" \
+            --from-literal=prowlarr-api-key="YOUR_PROWLARR_API_KEY" \
+            --from-literal=qbittorrent-username="admin" \
+            --from-literal=qbittorrent-password="YOUR_QBITTORRENT_PASSWORD"
+
+          3. Plex token for monitoring:
+          kubectl create secret generic plex-token -n monitoring \
+            --from-literal=token="YOUR_PLEX_TOKEN"
+
+    - name: Wait for applications to sync
+      debug:
+        msg: "ArgoCD will now sync all applications. Check status with: kubectl get applications -n argocd"

@@ -1,0 +1,85 @@
+# Add SSD storage paths to Longhorn nodes for fast application storage
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: longhorn-ssd-config
+  namespace: longhorn-system
+data:
+  add-ssd-storage.sh: |
+    #!/bin/bash
+    # Script to add SSD storage paths to Longhorn nodes
+    
+    # Create SSD storage directories on each node
+    for node in node01 node02 node03 node04; do
+      echo "Configuring SSD storage for $node"
+      
+      # Create the SSD storage directory
+      kubectl debug node/$node -it --image=ubuntu:22.04 -- bash -c "
+        mkdir -p /mnt/longhorn-ssd
+        chown root:root /mnt/longhorn-ssd
+        chmod 755 /mnt/longhorn-ssd
+      " || echo "Failed to configure $node"
+    done
+---
+# Job to configure SSD storage on all nodes
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: configure-ssd-storage
+  namespace: longhorn-system
+spec:
+  template:
+    spec:
+      serviceAccountName: longhorn-service-account
+      containers:
+      - name: configure-storage
+        image: bitnami/kubectl:latest
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          # Create storage directories on each node
+          for node in node01 node02 node03 node04; do
+            echo "Configuring storage directory on $node"
+            
+            # Create a pod on each node to make the directory
+            cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: storage-setup-$node
+            namespace: longhorn-system
+          spec:
+            nodeSelector:
+              kubernetes.io/hostname: $node
+            hostPID: true
+            containers:
+            - name: setup
+              image: busybox
+              command: ["/bin/sh", "-c"]
+              args:
+              - |
+                mkdir -p /host/mnt/longhorn-ssd
+                chmod 755 /host/mnt/longhorn-ssd
+                echo "SSD storage directory created on $node"
+                sleep 10
+              securityContext:
+                privileged: true
+              volumeMounts:
+              - name: host-root
+                mountPath: /host
+            volumes:
+            - name: host-root
+              hostPath:
+                path: /
+            restartPolicy: Never
+          EOF
+            
+            # Wait for pod to complete
+            sleep 15
+            kubectl wait --for=condition=complete pod/storage-setup-$node -n longhorn-system --timeout=60s || true
+            kubectl delete pod storage-setup-$node -n longhorn-system || true
+          done
+          
+          echo "Storage directories configured on all nodes"
+      restartPolicy: Never
+  backoffLimit: 3

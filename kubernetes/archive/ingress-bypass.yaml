@@ -1,0 +1,30 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: qbittorrent-bypass
+  namespace: media
+spec:
+  entryPoints:
+  - web
+  - websecure  
+  routes:
+  - match: Host(`qbittorrent.homelab.local`)
+    kind: Rule
+    middlewares:
+    - name: https-redirect
+    services:
+    - name: qbittorrent
+      port: 8080
+  tls:
+    secretName: media-homelab-tls
+---
+# HTTP to HTTPS redirect middleware
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: https-redirect
+  namespace: media
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true

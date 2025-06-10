@@ -1,0 +1,17 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: default-redirect
+  namespace: homepage
+spec:
+  entryPoints:
+  - web
+  - websecure
+  routes:
+  - match: Host(`192.168.87.10`)
+    kind: Rule
+    services:
+    - name: homepage
+      port: 3000
+    middlewares:
+    - name: https-redirect

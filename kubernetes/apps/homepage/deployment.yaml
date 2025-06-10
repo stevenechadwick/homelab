@@ -16,6 +16,22 @@ spec:
         app: homepage
     spec:
       serviceAccountName: homepage-serviceaccount
+      initContainers:
+      - name: config-setup
+        image: busybox:1.35
+        command: 
+        - sh
+        - -c
+        - |
+          ls -la /tmp/config/
+          cp /tmp/config/* /app/config/ 2>/dev/null || true
+          ls -la /app/config/
+          chmod -R 755 /app/config
+        volumeMounts:
+        - name: config-source
+          mountPath: /tmp/config
+        - name: config-writable
+          mountPath: /app/config
       containers:
       - name: homepage
         image: ghcr.io/gethomepage/homepage:latest
@@ -30,15 +46,29 @@ spec:
           value: "clean"
         - name: HOMEPAGE_VAR_WEATHER_API_KEY
           value: ""
+        - name: HOMEPAGE_ALLOWED_HOSTS
+          value: "homepage.homelab.local,homelab.local,dashboard.homelab.local,192.168.87.10"
+        - name: HOMEPAGE_VAR_GRAFANA_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: homepage-credentials
+              key: grafana-username
+        - name: HOMEPAGE_VAR_GRAFANA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: homepage-credentials
+              key: grafana-password
         volumeMounts:
-        - name: config
+        - name: config-writable
           mountPath: /app/config
         - name: logs
           mountPath: /app/config/logs
       volumes:
-      - name: config
+      - name: config-source
         configMap:
           name: homepage-config
+      - name: config-writable
+        emptyDir: {}
       - name: logs
         emptyDir: {}
 ---

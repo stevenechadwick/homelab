@@ -1,0 +1,29 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard-simple
+  namespace: kube-system
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`traefik.homelab.local`) && PathPrefix(`/dashboard`)
+      kind: Rule
+      services:
+        - name: traefik-dashboard
+          port: 9000
+    - match: Host(`traefik.homelab.local`) && PathPrefix(`/api`)
+      kind: Rule
+      services:
+        - name: traefik-dashboard
+          port: 9000
+    - match: Host(`traefik.homelab.local`) && Path(`/`)
+      kind: Rule
+      middlewares:
+        - name: traefik-dashboard-redirect
+      services:
+        - name: traefik-dashboard
+          port: 9000
+  tls:
+    secretName: traefik-homelab-tls

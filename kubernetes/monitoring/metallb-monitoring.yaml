@@ -1,0 +1,82 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metallb-controller-metrics
+  namespace: metallb-system
+  labels:
+    app: metallb
+    component: controller
+spec:
+  selector:
+    app: metallb
+    component: controller
+  ports:
+  - name: monitoring
+    port: 7472
+    targetPort: monitoring
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metallb-speaker-metrics
+  namespace: metallb-system
+  labels:
+    app: metallb
+    component: speaker
+spec:
+  selector:
+    app: metallb
+    component: speaker
+  ports:
+  - name: monitoring
+    port: 7472
+    targetPort: monitoring
+  type: ClusterIP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: metallb-controller
+  namespace: metallb-system
+  labels:
+    app: metallb
+    component: controller
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: metallb
+      component: controller
+  endpoints:
+  - port: monitoring
+    interval: 30s
+    path: /metrics
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - metallb-system
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: metallb-speaker
+  namespace: metallb-system
+  labels:
+    app: metallb
+    component: speaker
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: metallb
+      component: speaker
+  endpoints:
+  - port: monitoring
+    interval: 30s
+    path: /metrics
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - metallb-system

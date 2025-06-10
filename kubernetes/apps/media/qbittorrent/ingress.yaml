@@ -10,6 +10,9 @@ spec:
   routes:
   - match: Host(`qbittorrent.homelab.local`)
     kind: Rule
+    middlewares:
+    - name: authelia
+      
     services:
     - name: qbittorrent
       port: 8080
