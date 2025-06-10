@@ -1,0 +1,15 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: homepage-fallback
+  namespace: homepage
+spec:
+  entryPoints:
+  - web
+  routes:
+  - match: PathPrefix(`/`)
+    kind: Rule
+    priority: 1
+    services:
+    - name: homepage
+      port: 3000

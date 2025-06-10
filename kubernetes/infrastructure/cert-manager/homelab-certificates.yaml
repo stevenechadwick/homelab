@@ -1,0 +1,85 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: homelab-tls
+  namespace: homepage
+spec:
+  secretName: homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - homelab.local
+    - dashboard.homelab.local
+    - homepage.homelab.local
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: auth-homelab-tls
+  namespace: authelia
+spec:
+  secretName: auth-homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - auth.homelab.local
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: media-homelab-tls
+  namespace: media
+spec:
+  secretName: media-homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - plex.homelab.local
+    - radarr.homelab.local
+    - sonarr.homelab.local
+    - prowlarr.homelab.local
+    - qbittorrent.homelab.local
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: monitoring-homelab-tls
+  namespace: monitoring
+spec:
+  secretName: monitoring-homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - grafana.homelab.local
+    - prometheus.homelab.local
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: argocd-homelab-tls
+  namespace: argocd
+spec:
+  secretName: argocd-homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - argocd.homelab.local
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rancher-homelab-tls
+  namespace: cattle-system
+spec:
+  secretName: rancher-homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - rancher.homelab.local

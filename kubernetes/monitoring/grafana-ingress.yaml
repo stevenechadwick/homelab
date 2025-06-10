@@ -10,8 +10,10 @@ spec:
   routes:
   - match: Host(`grafana.homelab.local`)
     kind: Rule
+    middlewares:
+    - name: authelia
     services:
     - name: kube-prometheus-stack-grafana
       port: 80
   tls:
-    certResolver: default
+    secretName: monitoring-homelab-tls

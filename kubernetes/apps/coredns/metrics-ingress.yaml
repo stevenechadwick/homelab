@@ -1,0 +1,48 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: coredns-metrics
+  namespace: coredns
+spec:
+  entryPoints:
+  - web
+  - websecure
+  routes:
+  - match: Host(`coredns.homelab.local`)
+    kind: Rule
+    middlewares:
+    - name: authelia
+    services:
+    - name: coredns-metrics
+      port: 9153
+  tls:
+    secretName: coredns-homelab-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: coredns-homelab-tls
+  namespace: coredns
+spec:
+  secretName: coredns-homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - coredns.homelab.local
+---
+# Create authelia middleware in coredns namespace
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: authelia
+  namespace: coredns
+spec:
+  forwardAuth:
+    address: http://authelia-simple.authelia.svc.cluster.local/api/verify?rd=https://auth.homelab.local
+    trustForwardHeader: true
+    authResponseHeaders:
+      - Remote-User
+      - Remote-Groups
+      - Remote-Name
+      - Remote-Email

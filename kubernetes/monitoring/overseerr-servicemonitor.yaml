@@ -1,0 +1,26 @@
+# Overseerr HTTP status monitoring via blackbox exporter
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: overseerr-http
+  namespace: monitoring
+  labels:
+    app: overseerr
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: blackbox-exporter
+  endpoints:
+  - port: http
+    path: /probe
+    params:
+      module: [http_2xx]
+      target: [http://overseerr.media.svc.cluster.local:5055]
+    interval: 30s
+    scrapeTimeout: 10s
+    metricRelabelings:
+    - sourceLabels: [__param_target]
+      targetLabel: instance
+    - targetLabel: __address__
+      replacement: blackbox-exporter:9115

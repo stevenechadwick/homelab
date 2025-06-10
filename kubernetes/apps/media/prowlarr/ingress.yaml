@@ -10,6 +10,9 @@ spec:
   routes:
   - match: Host(`prowlarr.homelab.local`)
     kind: Rule
+    middlewares:
+    - name: authelia
+      
     services:
     - name: prowlarr
       port: 9696

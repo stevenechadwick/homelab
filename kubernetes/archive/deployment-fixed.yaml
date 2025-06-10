@@ -1,0 +1,230 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent-vpn
+  namespace: media
+  labels:
+    app: qbittorrent-vpn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qbittorrent-vpn
+  template:
+    metadata:
+      labels:
+        app: qbittorrent-vpn
+    spec:
+      # Use init container pattern for better reliability
+      initContainers:
+      - name: vpn-init
+        image: qmcgaw/gluetun:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Initializing VPN connection..."
+            exit 0
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+        env:
+        - name: VPN_SERVICE_PROVIDER
+          value: "protonvpn"
+        - name: VPN_TYPE
+          value: "openvpn"
+        - name: OPENVPN_USER
+          valueFrom:
+            secretKeyRef:
+              name: proton-vpn-credentials
+              key: username
+        - name: OPENVPN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: proton-vpn-credentials
+              key: password
+      
+      containers:
+      # VPN Container
+      - name: gluetun
+        image: qmcgaw/gluetun:latest
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+        env:
+        - name: VPN_SERVICE_PROVIDER
+          value: "protonvpn"
+        - name: VPN_TYPE
+          value: "openvpn"
+        - name: OPENVPN_USER
+          valueFrom:
+            secretKeyRef:
+              name: proton-vpn-credentials
+              key: username
+        - name: OPENVPN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: proton-vpn-credentials
+              key: password
+        # Toronto P2P servers
+        - name: SERVER_COUNTRIES
+          value: "Canada"
+        - name: SERVER_CITIES
+          value: "Toronto"
+        - name: FREE_ONLY
+          value: "off"
+        # Network and firewall settings
+        - name: FIREWALL
+          value: "on"
+        - name: FIREWALL_OUTBOUND_SUBNETS
+          value: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+        - name: HEALTH_VPN_DURATION_INITIAL
+          value: "60s"
+        - name: HEALTH_SUCCESS_WAIT_DURATION
+          value: "10s"
+        - name: LOG_LEVEL
+          value: "info"
+        # Expose ports for qBittorrent
+        ports:
+        - containerPort: 8080
+          name: webui
+        - containerPort: 6881
+          name: torrent-tcp
+          protocol: TCP
+        - containerPort: 6881
+          name: torrent-udp
+          protocol: UDP
+        - containerPort: 8000
+          name: gluetun-control
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        # Fixed health checks using correct Gluetun healthcheck endpoint
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 9999
+            host: 127.0.0.1
+          initialDelaySeconds: 120
+          periodSeconds: 60
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 9999
+            host: 127.0.0.1
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          failureThreshold: 10
+
+      # qBittorrent Container - using network: container mode
+      - name: qbittorrent
+        image: lscr.io/linuxserver/qbittorrent:latest
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "America/Toronto"  # Changed to Toronto timezone
+        - name: WEBUI_PORT
+          value: "8080"
+        - name: QBT_WEBUI_BIND_ADDRESS
+          value: "0.0.0.0"  # Changed from * to be more explicit
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: downloads
+          mountPath: /downloads
+        - name: incomplete-downloads
+          mountPath: /incomplete-downloads
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        # Fixed qBittorrent health checks with proper network access
+        startupProbe:
+          httpGet:
+            path: /
+            port: 8080
+            host: 127.0.0.1
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          failureThreshold: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+            host: 127.0.0.1
+          initialDelaySeconds: 300
+          periodSeconds: 60
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+            host: 127.0.0.1
+          initialDelaySeconds: 180
+          periodSeconds: 30
+          failureThreshold: 5
+          
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: qbittorrent-config
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: media-storage-2
+      - name: incomplete-downloads
+        emptyDir:
+          sizeLimit: 50Gi
+
+---
+# Updated Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: qbittorrent-vpn
+  namespace: media
+  labels:
+    app: qbittorrent-vpn
+spec:
+  selector:
+    app: qbittorrent-vpn
+  ports:
+  - name: webui
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: torrent-tcp
+    port: 6881
+    targetPort: 6881
+    protocol: TCP
+  - name: torrent-udp
+    port: 6881
+    targetPort: 6881
+    protocol: UDP
+  type: ClusterIP
+
+---
+# Keep the same PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-config
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi

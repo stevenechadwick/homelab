@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-config
+  namespace: coredns
+data:
+  Corefile: |
+    # Homelab local domains
+    homelab.local:53 {
+        hosts {
+            192.168.87.10 homelab.local
+            192.168.87.10 dashboard.homelab.local
+            192.168.87.10 homepage.homelab.local
+            192.168.87.10 auth.homelab.local
+            192.168.87.10 argocd.homelab.local
+            192.168.87.10 rancher.homelab.local
+            192.168.87.10 grafana.homelab.local
+            192.168.87.10 prometheus.homelab.local
+            192.168.87.10 traefik.homelab.local
+            192.168.87.10 longhorn.homelab.local
+            192.168.87.10 coredns.homelab.local
+            192.168.87.10 plex.homelab.local
+            192.168.87.10 radarr.homelab.local
+            192.168.87.10 sonarr.homelab.local
+            192.168.87.10 prowlarr.homelab.local
+            192.168.87.10 qbittorrent.homelab.local
+            192.168.87.10 overseerr.homelab.local
+            fallthrough
+        }
+        prometheus :9153
+        log
+        errors
+    }
+    
+    # Forward all other queries to public DNS
+    .:53 {
+        forward . 1.1.1.1 8.8.8.8
+        prometheus :9153
+        log
+        errors
+        cache 30
+    }

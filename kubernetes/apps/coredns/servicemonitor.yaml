@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: coredns
+  namespace: coredns
+  labels:
+    app: coredns
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: coredns
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - coredns

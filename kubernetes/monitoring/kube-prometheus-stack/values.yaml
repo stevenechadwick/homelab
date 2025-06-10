@@ -1,15 +1,32 @@
 grafana:
   adminPassword: admin
   service:
-    type: LoadBalancer
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: 192.168.87.13
+    type: ClusterIP
   ingress:
     enabled: false
   persistence:
     enabled: true
     storageClassName: longhorn
     size: 10Gi
+  grafana.ini:
+    auth.proxy:
+      enabled: true
+      header_name: Remote-User
+      header_property: username
+      auto_sign_up: true
+      sync_ttl: 60
+      whitelist: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+      headers: Remote-User,Remote-Name,Remote-Email,Remote-Groups
+      enable_login_token: false
+    auth.basic:
+      enabled: false
+    auth.anonymous:
+      enabled: false
+    users:
+      allow_sign_up: false
+      auto_assign_org: true
+      auto_assign_org_id: 1
+      auto_assign_org_role: Editor
 
 prometheus:
   prometheusSpec:

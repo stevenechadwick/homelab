@@ -1,0 +1,35 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: homepage-http
+  namespace: homepage
+spec:
+  entryPoints:
+  - web
+  routes:
+  - match: Host(`homepage.homelab.local`) || Host(`homelab.local`) || Host(`dashboard.homelab.local`)
+    kind: Rule
+    middlewares:
+    - name: https-redirect
+    services:
+    - name: homepage
+      port: 3000
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: homepage-https
+  namespace: homepage
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`homepage.homelab.local`) || Host(`homelab.local`) || Host(`dashboard.homelab.local`)
+    kind: Rule
+    middlewares:
+    - name: authelia
+    services:
+    - name: homepage
+      port: 3000
+  tls:
+    secretName: homelab-tls

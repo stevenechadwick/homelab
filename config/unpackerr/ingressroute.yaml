@@ -1,0 +1,19 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: unpackerr
+  namespace: media
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`unpackerr.homelab.local`)
+      kind: Rule
+      services:
+        - name: unpackerr
+          port: 5656
+      middlewares:
+        - name: authelia
+  tls:
+    secretName: unpackerr-homelab-tls

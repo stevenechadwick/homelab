@@ -30,14 +30,16 @@ spec:
         - name: VERSION
           value: "docker"
         - name: PLEX_CLAIM
-          value: ""  # Add your claim token here if needed
+          value: "claim-iB_yK5676LQcD9sJWHvC"
         volumeMounts:
         - name: config
           mountPath: /config
-        - name: movies
+        - name: media
           mountPath: /movies
-        - name: tv
+          subPath: movies
+        - name: media
           mountPath: /tv
+          subPath: tv
         resources:
           requests:
             memory: "1Gi"
@@ -49,10 +51,7 @@ spec:
       - name: config
         persistentVolumeClaim:
           claimName: plex-config
-      - name: movies
-        persistentVolumeClaim:
-          claimName: media-storage-1
-      - name: tv
+      - name: media
         persistentVolumeClaim:
           claimName: media-storage-1
 ---

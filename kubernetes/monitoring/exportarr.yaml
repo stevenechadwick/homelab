@@ -1,0 +1,250 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exportarr-radarr
+  namespace: monitoring
+  labels:
+    app: exportarr-radarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: exportarr-radarr
+  template:
+    metadata:
+      labels:
+        app: exportarr-radarr
+    spec:
+      containers:
+      - name: exportarr
+        image: ghcr.io/onedr0p/exportarr:latest
+        ports:
+        - containerPort: 9707
+          name: metrics
+        env:
+        - name: PORT
+          value: "9707"
+        - name: URL
+          value: "http://radarr.media.svc.cluster.local:7878"
+        - name: APIKEY
+          valueFrom:
+            secretKeyRef:
+              name: media-api-keys
+              key: radarr-api-key
+        - name: ENABLE_ADDITIONAL_METRICS
+          value: "true"
+        - name: ENABLE_UNKNOWN_QUEUE_ITEMS
+          value: "true"
+        args:
+        - radarr
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exportarr-sonarr
+  namespace: monitoring
+  labels:
+    app: exportarr-sonarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: exportarr-sonarr
+  template:
+    metadata:
+      labels:
+        app: exportarr-sonarr
+    spec:
+      containers:
+      - name: exportarr
+        image: ghcr.io/onedr0p/exportarr:latest
+        ports:
+        - containerPort: 9708
+          name: metrics
+        env:
+        - name: PORT
+          value: "9708"
+        - name: URL
+          value: "http://sonarr.media.svc.cluster.local:8989"
+        - name: APIKEY
+          valueFrom:
+            secretKeyRef:
+              name: media-api-keys
+              key: sonarr-api-key
+        - name: ENABLE_ADDITIONAL_METRICS
+          value: "true"
+        - name: ENABLE_UNKNOWN_QUEUE_ITEMS
+          value: "true"
+        args:
+        - sonarr
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exportarr-prowlarr
+  namespace: monitoring
+  labels:
+    app: exportarr-prowlarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: exportarr-prowlarr
+  template:
+    metadata:
+      labels:
+        app: exportarr-prowlarr
+    spec:
+      containers:
+      - name: exportarr
+        image: ghcr.io/onedr0p/exportarr:latest
+        ports:
+        - containerPort: 9709
+          name: metrics
+        env:
+        - name: PORT
+          value: "9709"
+        - name: URL
+          value: "http://prowlarr.media.svc.cluster.local:9696"
+        - name: APIKEY
+          valueFrom:
+            secretKeyRef:
+              name: media-api-keys
+              key: prowlarr-api-key
+        - name: ENABLE_ADDITIONAL_METRICS
+          value: "true"
+        args:
+        - prowlarr
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: exportarr-radarr
+  namespace: monitoring
+  labels:
+    app: exportarr-radarr
+spec:
+  selector:
+    app: exportarr-radarr
+  ports:
+  - name: metrics
+    port: 9707
+    targetPort: metrics
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: exportarr-sonarr
+  namespace: monitoring
+  labels:
+    app: exportarr-sonarr
+spec:
+  selector:
+    app: exportarr-sonarr
+  ports:
+  - name: metrics
+    port: 9708
+    targetPort: metrics
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: exportarr-prowlarr
+  namespace: monitoring
+  labels:
+    app: exportarr-prowlarr
+spec:
+  selector:
+    app: exportarr-prowlarr
+  ports:
+  - name: metrics
+    port: 9709
+    targetPort: metrics
+  type: ClusterIP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: exportarr-radarr
+  namespace: monitoring
+  labels:
+    app: exportarr-radarr
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: exportarr-radarr
+  endpoints:
+  - port: metrics
+    interval: 60s
+    path: /metrics
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - monitoring
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: exportarr-sonarr
+  namespace: monitoring
+  labels:
+    app: exportarr-sonarr
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: exportarr-sonarr
+  endpoints:
+  - port: metrics
+    interval: 60s
+    path: /metrics
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - monitoring
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: exportarr-prowlarr
+  namespace: monitoring
+  labels:
+    app: exportarr-prowlarr
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: exportarr-prowlarr
+  endpoints:
+  - port: metrics
+    interval: 60s
+    path: /metrics
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - monitoring

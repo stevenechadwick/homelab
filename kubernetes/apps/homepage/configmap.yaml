@@ -8,7 +8,7 @@ data:
     title: Homelab Dashboard
     favicon: https://github.com/gethomepage/homepage/raw/main/public/android-chrome-192x192.png
     theme: dark
-    color: slate
+    color: blue
     headerStyle: clean
     layout:
       Management:
@@ -51,17 +51,17 @@ data:
 
         - Radarr:
             href: https://radarr.homelab.local
-            description: Movie Collection Manager
+            description: Movie Management
             icon: radarr.png
 
         - Sonarr:
             href: https://sonarr.homelab.local
-            description: TV Show Manager
+            description: TV Show Management
             icon: sonarr.png
 
         - Prowlarr:
             href: https://prowlarr.homelab.local
-            description: Indexer Manager
+            description: Indexer Management
             icon: prowlarr.png
 
         - qBittorrent:
@@ -69,25 +69,38 @@ data:
             description: Download Client
             icon: qbittorrent.png
 
-    - Infrastructure:
-        - Longhorn:
-            href: http://192.168.87.11/k8s/clusters/local/api/v1/namespaces/longhorn-system/services/http:longhorn-frontend:80/proxy/
-            description: Distributed Storage
-            icon: longhorn.png
+        - Overseerr:
+            href: https://overseerr.homelab.local
+            description: Media Request Management
+            icon: overseerr.png
 
-        - PiHole:
-            href: https://pihole.homelab.local
-            description: DNS & Ad Blocker
-            icon: pihole.png
+    - Infrastructure:
+        - CoreDNS:
+            href: https://coredns.homelab.local/metrics
+            description: DNS Server & Metrics
+            icon: coredns.png
 
         - Traefik:
-            href: http://192.168.87.10:8080
+            href: https://traefik.homelab.local
             description: Reverse Proxy & Load Balancer
             icon: traefik.png
 
-        - MetalLB:
-            description: Bare Metal Load Balancer
-            icon: metallb.png
+        - Longhorn:
+            href: https://longhorn.homelab.local
+            description: Distributed Storage
+            icon: longhorn.png
+
+    - Monitoring:
+        - Grafana:
+            href: https://grafana.homelab.local
+            description: Monitoring Dashboards
+            icon: grafana.png
+
+        - Prometheus:
+            href: https://prometheus.homelab.local
+            description: Metrics Collection
+            icon: prometheus.png
+
 
   widgets.yaml: |
     - logo:
@@ -95,7 +108,7 @@ data:
 
     - greeting:
         text_size: xl
-        text: "Welcome to your Homelab!"
+        text: "Welcome to your Homelab! ♡"
 
     - kubernetes:
         cluster:
@@ -125,6 +138,40 @@ data:
     mode: cluster
 
   docker.yaml: ""
+
+  custom.css: |
+    /* Cinnamoroll Dark Theme */
+    body {
+      background: linear-gradient(135deg, #263238 0%, #332233 50%, #2B2D42 100%) !important;
+      background-attachment: fixed !important;
+    }
+    
+    :root {
+      --color-primary: #6B73FF;
+      --color-secondary: #9C88FF;
+      --color-accent: #F0F8FF;
+      --color-text: #4682B4;
+    }
+    
+    .bg-theme-50 {
+      background-color: rgba(240, 248, 255, 0.05) !important;
+    }
+    
+    .text-theme-600 {
+      color: var(--color-text) !important;
+    }
+    
+    .border-theme-200 {
+      border-color: rgba(156, 136, 255, 0.3) !important;
+    }
+    
+    .group:hover .group-hover\:bg-theme-100 {
+      background-color: rgba(107, 115, 255, 0.1) !important;
+    }
+    
+    .shadow-md {
+      box-shadow: 0 4px 6px -1px rgba(107, 115, 255, 0.2) !important;
+    }
 
   bookmarks.yaml: |
     - Homelab Links:

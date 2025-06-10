@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unpackerr
+  namespace: media
+  labels:
+    app: unpackerr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: unpackerr
+  template:
+    metadata:
+      labels:
+        app: unpackerr
+    spec:
+      containers:
+      - name: unpackerr
+        image: golift/unpackerr:latest
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "America/New_York"
+        - name: UN_DEBUG
+          value: "false"
+        - name: UN_LOG_FILE
+          value: "/logs/unpackerr.log"
+        - name: UN_LOG_FILES
+          value: "10"
+        - name: UN_LOG_FILE_MB
+          value: "10"
+        # Sonarr Configuration
+        - name: UN_SONARR_0_URL
+          value: "http://sonarr:8989"
+        - name: UN_SONARR_0_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: media-api-keys
+              key: sonarr-api-key
+        - name: UN_SONARR_0_PATHS_0
+          value: "/downloads"
+        - name: UN_SONARR_0_PROTOCOLS
+          value: "torrent"
+        - name: UN_SONARR_0_TIMEOUT
+          value: "10s"
+        - name: UN_SONARR_0_DELETE_DELAY
+          value: "5m"
+        # Radarr Configuration  
+        - name: UN_RADARR_0_URL
+          value: "http://radarr:7878"
+        - name: UN_RADARR_0_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: media-api-keys
+              key: radarr-api-key
+        - name: UN_RADARR_0_PATHS_0
+          value: "/downloads"
+        - name: UN_RADARR_0_PROTOCOLS
+          value: "torrent"
+        - name: UN_RADARR_0_TIMEOUT
+          value: "10s"
+        - name: UN_RADARR_0_DELETE_DELAY
+          value: "5m"
+        # Folder Configuration
+        - name: UN_FOLDER_0_PATH
+          value: "/downloads"
+        - name: UN_FOLDER_0_EXTRACT_PATH
+          value: "/downloads/extracted"
+        - name: UN_FOLDER_0_DELETE_AFTER
+          value: "0"  # Never auto-delete
+        - name: UN_FOLDER_0_DELETE_ORIGINAL
+          value: "false"  # Keep original archives for seeding
+        - name: UN_FOLDER_0_DELETE_FILES
+          value: "false"
+        - name: UN_FOLDER_0_MOVE_BACK
+          value: "false"
+        volumeMounts:
+        - name: downloads
+          mountPath: /downloads
+        - name: logs
+          mountPath: /logs
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: media-storage-2
+      - name: logs
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: unpackerr
+  namespace: media
+  labels:
+    app: unpackerr
+spec:
+  selector:
+    app: unpackerr
+  ports:
+  - name: http
+    port: 5656
+    targetPort: 5656
+  type: ClusterIP

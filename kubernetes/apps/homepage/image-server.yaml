@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage-nginx-config
+  namespace: homepage
+data:
+  nginx.conf: |
+    events {}
+    http {
+      server {
+        listen 8080;
+        location /background.png {
+          root /usr/share/nginx/html;
+          try_files /cinnamoroll-5k-cute-5120x5120-11712.png =404;
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homepage-image-server
+  namespace: homepage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homepage-image-server
+  template:
+    metadata:
+      labels:
+        app: homepage-image-server
+    spec:
+      initContainers:
+      - name: copy-image
+        image: busybox
+        command: ['sh', '-c', 'cp /source/cinnamoroll-5k-cute-5120x5120-11712.png /target/']
+        volumeMounts:
+        - name: image-source
+          mountPath: /source
+        - name: html-storage
+          mountPath: /target
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: html-storage
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: image-source
+        hostPath:
+          path: /Users/steve/Development/homelab
+          type: Directory
+      - name: html-storage
+        emptyDir: {}
+      - name: nginx-config
+        configMap:
+          name: homepage-nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: homepage-image-server
+  namespace: homepage
+spec:
+  selector:
+    app: homepage-image-server
+  ports:
+  - port: 80
+    targetPort: 8080

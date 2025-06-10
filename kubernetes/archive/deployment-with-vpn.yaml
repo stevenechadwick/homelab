@@ -1,0 +1,156 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: media
+  labels:
+    app: qbittorrent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qbittorrent
+  template:
+    metadata:
+      labels:
+        app: qbittorrent
+    spec:
+      # Enable shared network namespace between containers
+      shareProcessNamespace: true
+      containers:
+      # VPN Sidecar Container
+      - name: proton-vpn
+        image: dperson/openvpn-client:latest
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+          privileged: true
+        env:
+        - name: VPN
+          value: "/etc/openvpn/protonvpn.ovpn"
+        - name: VPN_AUTH
+          value: "/etc/openvpn/auth.txt"
+        - name: FIREWALL
+          value: "true"
+        - name: ROUTE
+          value: "1"
+        volumeMounts:
+        - name: vpn-config
+          mountPath: /etc/openvpn/protonvpn.ovpn
+          subPath: protonvpn.ovpn
+          readOnly: true
+        - name: vpn-config
+          mountPath: /etc/openvpn/ca.crt
+          subPath: ca.crt
+          readOnly: true  
+        - name: vpn-config
+          mountPath: /etc/openvpn/ta.key
+          subPath: ta.key
+          readOnly: true
+        - name: vpn-credentials
+          mountPath: /etc/openvpn/auth.txt
+          subPath: auth.txt
+          readOnly: true
+        - name: dev-net-tun
+          mountPath: /dev/net/tun
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+      
+      # qBittorrent Container (using VPN network)
+      - name: qbittorrent
+        image: lscr.io/linuxserver/qbittorrent:latest
+        # Use VPN container's network
+        securityContext:
+          runAsNonRoot: false
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "America/New_York"
+        - name: WEBUI_PORT
+          value: "8080"
+        # Bind to VPN interface only
+        - name: QBT_WEBUI_BIND_ADDRESS
+          value: "127.0.0.1"
+        ports:
+        - containerPort: 8080
+          name: webui
+        - containerPort: 6881
+          name: torrent-tcp
+          protocol: TCP
+        - containerPort: 6881
+          name: torrent-udp
+          protocol: UDP
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: downloads
+          mountPath: /downloads
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        # Health check to ensure qBittorrent is running
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: qbittorrent-config
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: media-storage-2
+      - name: vpn-config
+        configMap:
+          name: proton-vpn-config
+      - name: vpn-credentials
+        secret:
+          secretName: proton-vpn-credentials
+          items:
+          - key: username
+            path: username
+          - key: password  
+            path: password
+          # Create auth.txt file with username and password
+          defaultMode: 0600
+      - name: dev-net-tun
+        hostPath:
+          path: /dev/net/tun
+          type: CharDevice
+
+---
+# Original PVC remains the same
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-config
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi
