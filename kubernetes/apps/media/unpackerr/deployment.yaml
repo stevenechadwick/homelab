@@ -26,7 +26,7 @@ spec:
         - name: TZ
           value: "America/New_York"
         - name: UN_DEBUG
-          value: "false"
+          value: "true"
         - name: UN_LOG_FILE
           value: "/logs/unpackerr.log"
         - name: UN_LOG_FILES
@@ -65,7 +65,7 @@ spec:
           value: "10s"
         - name: UN_RADARR_0_DELETE_DELAY
           value: "5m"
-        # Folder Configuration
+        # Folder Configuration - Enhanced for multi-part archives
         - name: UN_FOLDER_0_PATH
           value: "/downloads"
         - name: UN_FOLDER_0_EXTRACT_PATH
@@ -78,6 +78,16 @@ spec:
           value: "false"
         - name: UN_FOLDER_0_MOVE_BACK
           value: "false"
+        # Additional folder monitoring settings
+        - name: UN_FOLDER_0_EXTRACT_ISOSMS
+          value: "false"
+        - name: UN_FOLDER_0_BUFFER_TIME
+          value: "5m"  # Wait for multi-part archives
+        # Webui Configuration for better debugging
+        - name: UN_WEBSERVER_BIND_ADDR
+          value: "0.0.0.0:5656"
+        - name: UN_WEBSERVER_URLBASE
+          value: "/"
         volumeMounts:
         - name: downloads
           mountPath: /downloads

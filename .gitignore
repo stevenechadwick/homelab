@@ -3,6 +3,20 @@
 kubeconfig-*
 *.pat
 *.token
+secrets.yaml
+*-secret.yaml
+*-secrets.yaml
+*.key
+*.crt
+*.pem
+*.p12
+*.pfx
+.env
+.env.local
+.env.production
+.env.staging
+vault.yml
+*.vault
 
 # Documentation (local only)
 documentation/
