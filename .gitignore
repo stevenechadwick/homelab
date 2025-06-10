@@ -6,6 +6,8 @@ kubeconfig-*
 secrets.yaml
 *-secret.yaml
 *-secrets.yaml
+*users-database.yaml
+authelia-users-database.yaml
 *.key
 *.crt
 *.pem
