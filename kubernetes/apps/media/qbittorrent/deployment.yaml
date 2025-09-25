@@ -25,7 +25,7 @@ spec:
               - NET_ADMIN
         env:
         - name: VPN_SERVICE_PROVIDER
-          value: "protonvpn"
+          value: "custom"
         - name: VPN_TYPE
           value: "openvpn"
         - name: OPENVPN_USER
@@ -38,13 +38,6 @@ spec:
             secretKeyRef:
               name: proton-vpn-credentials
               key: password
-        # Toronto P2P servers
-        - name: SERVER_COUNTRIES
-          value: "Canada"
-        - name: SERVER_CITIES
-          value: "Toronto"
-        - name: FREE_ONLY
-          value: "off"
         # Network settings
         - name: FIREWALL
           value: "on"
@@ -62,6 +55,13 @@ spec:
         # Use internal CoreDNS server for DNS resolution
         - name: DNS_ADDRESS
           value: "10.43.0.10"
+        # Custom OVPN configuration path
+        - name: OPENVPN_CUSTOM_CONFIG
+          value: "/gluetun/config/protonvpn.ovpn"
+        volumeMounts:
+        - name: vpn-config
+          mountPath: /gluetun/config
+          readOnly: true
         ports:
         - containerPort: 8080
         - containerPort: 6881
@@ -136,6 +136,9 @@ spec:
       - name: downloads
         persistentVolumeClaim:
           claimName: media-storage-2
+      - name: vpn-config
+        configMap:
+          name: proton-vpn-config
 
 ---
 apiVersion: v1
