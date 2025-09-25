@@ -3,6 +3,8 @@ kind: Service
 metadata:
   name: plex
   namespace: media
+  annotations:
+    metallb.universe.tf/allow-shared-ip: "plex"
 spec:
   selector:
     app: plex
@@ -10,4 +12,30 @@ spec:
   - name: plex-web
     port: 32400
     targetPort: 32400
-  type: ClusterIP
+    protocol: TCP
+  - name: plex-gdm1
+    port: 32410
+    targetPort: 32410
+    protocol: UDP
+  - name: plex-gdm2
+    port: 32412
+    targetPort: 32412
+    protocol: UDP
+  - name: plex-gdm3
+    port: 32413
+    targetPort: 32413
+    protocol: UDP
+  - name: plex-gdm4
+    port: 32414
+    targetPort: 32414
+    protocol: UDP
+  - name: plex-dlna
+    port: 1900
+    targetPort: 1900
+    protocol: UDP
+  - name: plex-dlna-tcp
+    port: 32469
+    targetPort: 32469
+    protocol: TCP
+  type: LoadBalancer
+  loadBalancerIP: 192.168.87.11

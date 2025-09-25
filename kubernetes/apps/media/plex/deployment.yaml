@@ -15,8 +15,28 @@ spec:
       labels:
         app: plex
     spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: ["node02"]
+          - weight: 80
+            preference:
+              matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: ["node04"]
+      securityContext:
+        supplementalGroups: [44, 109, 996, 997]
       containers:
       - name: plex
+        securityContext:
+          privileged: false
+          allowPrivilegeEscalation: false
         image: lscr.io/linuxserver/plex:latest
         ports:
         - containerPort: 32400
@@ -31,6 +51,8 @@ spec:
           value: "docker"
         - name: PLEX_CLAIM
           value: "claim-iB_yK5676LQcD9sJWHvC"
+        - name: ADVERTISE_IP
+          value: "http://192.168.87.11:32400/"
         volumeMounts:
         - name: config
           mountPath: /config
@@ -40,13 +62,19 @@ spec:
         - name: media
           mountPath: /tv
           subPath: tv
+        - name: dev-dri
+          mountPath: /dev/dri
+        - name: dev-dma-heap
+          mountPath: /dev/dma_heap
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "1.5Gi"
+            cpu: "1000m"
           limits:
-            memory: "4Gi"
-            cpu: "2000m"
+            memory: "6Gi"
+            cpu: "3000m"
       volumes:
       - name: config
         persistentVolumeClaim:
@@ -54,6 +82,15 @@ spec:
       - name: media
         persistentVolumeClaim:
           claimName: media-storage-1
+      - name: dev-dri
+        hostPath:
+          path: /dev/dri
+      - name: dev-dma-heap
+        hostPath:
+          path: /dev/dma_heap
+      - name: tmp
+        emptyDir:
+          sizeLimit: 8Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

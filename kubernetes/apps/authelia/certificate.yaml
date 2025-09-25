@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: authelia-homelab-cert
+  namespace: authelia
+spec:
+  secretName: authelia-homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  commonName: auth.homelab.local
+  dnsNames:
+  - auth.homelab.local

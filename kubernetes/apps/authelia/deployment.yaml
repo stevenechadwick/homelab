@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authelia
+  namespace: authelia
+  labels:
+    app: authelia
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: authelia
+  template:
+    metadata:
+      labels:
+        app: authelia
+    spec:
+      containers:
+      - name: authelia
+        image: authelia/authelia:latest
+        ports:
+        - containerPort: 9091
+        env:
+        - name: TZ
+          value: "America/New_York"
+        - name: AUTHELIA_JWT_SECRET_FILE
+          value: /secrets/jwt_secret
+        - name: AUTHELIA_SESSION_SECRET_FILE
+          value: /secrets/session_secret
+        - name: AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE
+          value: /secrets/storage_encryption_key
+        - name: AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE
+          value: /secrets/jwt_secret
+        volumeMounts:
+        - name: config
+          mountPath: /config/configuration.yml
+          subPath: configuration.yml
+          readOnly: true
+        - name: users
+          mountPath: /config/users_database.yml
+          subPath: users_database.yml
+          readOnly: true
+        - name: data
+          mountPath: /config
+        - name: secrets
+          mountPath: /secrets
+          readOnly: true
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 9091
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 9091
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: config
+        configMap:
+          name: authelia-config
+      - name: users
+        secret:
+          secretName: authelia-users
+      - name: data
+        persistentVolumeClaim:
+          claimName: authelia-data
+      - name: secrets
+        secret:
+          secretName: authelia-secrets
+          items:
+          - key: JWT_SECRET
+            path: jwt_secret
+          - key: SESSION_SECRET
+            path: session_secret
+          - key: STORAGE_ENCRYPTION_KEY
+            path: storage_encryption_key
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: authelia-data
+  namespace: authelia
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi
