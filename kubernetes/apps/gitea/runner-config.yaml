@@ -6,7 +6,7 @@ metadata:
 data:
   config.yaml: |
     log:
-      level: info
+      level: debug
 
     runner:
       file: .runner
@@ -15,8 +15,6 @@ data:
       insecure: true
       fetch_timeout: 5s
       fetch_interval: 2s
-      # Labels define which jobs the runner can handle and HOW to run them
-      # Format: label:docker://image or label:host
       labels:
         - "ubuntu-latest:docker://catthehacker/ubuntu:act-22.04"
         - "ubuntu-22.04:docker://catthehacker/ubuntu:act-22.04"
@@ -26,14 +24,8 @@ data:
       dir: /root/.cache/actcache
 
     container:
-      network: ""
-      privileged: false
-      # Mount Docker socket and certs into job containers
       options: >-
-        -v /certs/client:/certs/client:ro
-        -e DOCKER_HOST=tcp://host.docker.internal:2376
-        -e DOCKER_TLS_VERIFY=1
-        -e DOCKER_CERT_PATH=/certs/client
+        -e DOCKER_HOST=tcp://host.docker.internal:2375
         --add-host=host.docker.internal:host-gateway
-        --add-host=gitea.homelab.local:192.168.87.10
+        --add-host=gitea.homelab.local:10.43.46.7
       workdir_parent: workspace
