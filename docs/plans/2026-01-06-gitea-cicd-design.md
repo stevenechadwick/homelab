@@ -6,7 +6,7 @@
 
 ## Summary
 
-Deploy Gitea with its built-in container registry and Gitea Actions for CI/CD. Use Kaniko for rootless container image builds. Integrate with existing Authelia SSO for web access while using Gitea accounts for git/registry operations.
+Deploy Gitea with its built-in container registry and Gitea Actions for CI/CD. Use Buildah for daemonless container image builds. Integrate with existing Authelia SSO for web access while using Gitea accounts for git/registry operations.
 
 ## Architecture
 
@@ -20,7 +20,7 @@ Deploy Gitea with its built-in container registry and Gitea Actions for CI/CD. U
 │  │  + Registry  │    │  Runner      │    │   ArgoCD)        │  │
 │  └──────────────┘    └──────────────┘    └──────────────────┘  │
 │         │                   │                    ▲              │
-│         │                   │ Kaniko builds      │              │
+│         │                   │ Buildah builds     │              │
 │         │                   ▼                    │              │
 │         │            ┌──────────────┐            │              │
 │         └───────────▶│  Container   │────────────┘              │
@@ -38,7 +38,7 @@ Deploy Gitea with its built-in container registry and Gitea Actions for CI/CD. U
 **Workflow for new apps:**
 1. Push code to Gitea repo
 2. Gitea Actions triggers, runner picks up job
-3. Kaniko builds image, pushes to Gitea's container registry
+3. Buildah builds image, pushes to Gitea's container registry
 4. ArgoCD detects new image tag, deploys to cluster
 
 **Key URLs:**
@@ -52,7 +52,7 @@ Deploy Gitea with its built-in container registry and Gitea Actions for CI/CD. U
 |----------|--------|-----------|
 | Container Registry | Gitea built-in | Single service, zero extra setup, images alongside code |
 | Storage | Longhorn (20Gi) | Replicated, sufficient for <50GB usage |
-| Image Building | Kaniko | No privileged containers, no Docker daemon needed |
+| Image Building | Buildah | Daemonless OCI builder, chroot isolation, actively maintained |
 | Web Auth | Authelia (existing) | SSO with other homelab services |
 | Git Auth | Gitea accounts + SSH keys | Git CLI doesn't support OIDC, practical approach |
 | SSH Routing | Traefik IngressRouteTCP | Clean URLs via existing LoadBalancer |
@@ -138,18 +138,29 @@ DEFAULT_ACTIONS_URL = https://github.com
 name: Build and Push
 on: [push]
 
+env:
+  REGISTRY: gitea.homelab.local
+
 jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: gcr.io/kaniko-project/executor:debug
+      image: quay.io/buildah/stable:latest
+
     steps:
       - uses: actions/checkout@v4
-      - run: |
-          /kaniko/executor \
-            --context . \
-            --dockerfile Dockerfile \
-            --destination gitea.homelab.local/${{ github.repository }}:${{ github.sha }}
+
+      - name: Build Image
+        run: |
+          buildah build \
+            --isolation chroot \
+            --format docker \
+            --tag $REGISTRY/${{ gitea.repository }}:${{ gitea.sha }} \
+            .
+
+      - name: Push Image
+        run: |
+          buildah push $REGISTRY/${{ gitea.repository }}:${{ gitea.sha }}
 ```
 
 ## File Structure

@@ -1,0 +1,62 @@
+# Example Gitea Actions workflow using Buildah for container image builds
+# Save this as .gitea/workflows/build.yaml in your repository
+#
+# Buildah is a daemonless container image builder that replaces Kaniko.
+# It uses chroot isolation and doesn't require privileged containers.
+
+name: Build and Push Container Image
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  REGISTRY: gitea.homelab.local
+  IMAGE_NAME: ${{ gitea.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: quay.io/buildah/stable:latest
+      options: --security-opt seccomp=unconfined
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Buildah
+        run: |
+          # Configure Buildah for rootless operation
+          export BUILDAH_ISOLATION=chroot
+          export STORAGE_DRIVER=vfs
+          buildah version
+
+      - name: Log in to Container Registry
+        run: |
+          buildah login \
+            --username ${{ gitea.actor }} \
+            --password ${{ secrets.REGISTRY_TOKEN }} \
+            ${{ env.REGISTRY }}
+
+      - name: Build Container Image
+        run: |
+          buildah build \
+            --isolation chroot \
+            --format docker \
+            --layers \
+            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ gitea.sha }} \
+            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            .
+
+      - name: Push to Registry
+        if: github.event_name == 'push'
+        run: |
+          buildah push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ gitea.sha }}
+          buildah push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Clean up
+        run: |
+          buildah logout ${{ env.REGISTRY }}
