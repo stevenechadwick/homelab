@@ -1,5 +1,6 @@
 # Gitea Actions Runner with Docker-in-Docker (dind) sidecar
-# This allows the runner to build container images using Kaniko or Docker
+# DinD provides container runtime for workflow job execution
+# Use Buildah (not Docker) inside workflows for building container images
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -32,9 +33,24 @@ spec:
             sleep 2
           done
           echo "Docker daemon is ready"
-          # Start the runner
-          /usr/local/bin/run.sh
+          # Copy config to data dir
+          cp /etc/act_runner/config.yaml /data/config.yaml
+          cd /data
+          # Register if not already registered
+          if [ ! -f /data/.runner ]; then
+            echo "Registering runner..."
+            act_runner register --no-interactive \
+              --instance "$GITEA_INSTANCE_URL" \
+              --token "$GITEA_RUNNER_REGISTRATION_TOKEN" \
+              --name "$GITEA_RUNNER_NAME" \
+              --labels "$GITEA_RUNNER_LABELS" \
+              --config /data/config.yaml
+          fi
+          # Start the runner with config
+          act_runner daemon --config /data/config.yaml
         env:
+        - name: CONFIG_FILE
+          value: /data/config.yaml
         - name: TZ
           value: "America/New_York"
         - name: DOCKER_HOST
@@ -55,7 +71,7 @@ spec:
             fieldRef:
               fieldPath: metadata.name
         - name: GITEA_RUNNER_LABELS
-          value: "ubuntu-latest:docker://node:20-bookworm,ubuntu-22.04:docker://node:20-bookworm"
+          value: "ubuntu-latest,ubuntu-22.04"
         volumeMounts:
         - name: runner-data
           mountPath: /data
@@ -64,6 +80,8 @@ spec:
           readOnly: true
         - name: cache
           mountPath: /root/.cache
+        - name: runner-config
+          mountPath: /etc/act_runner
         resources:
           requests:
             memory: "256Mi"
@@ -125,3 +143,6 @@ spec:
       - name: cache
         persistentVolumeClaim:
           claimName: gitea-runner-cache
+      - name: runner-config
+        configMap:
+          name: gitea-runner-config
