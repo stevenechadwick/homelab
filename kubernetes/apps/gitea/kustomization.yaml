@@ -13,3 +13,4 @@ resources:
   - service-ssh.yaml
   - ingress.yaml
   - ingress-ssh.yaml
+  - runner-deployment.yaml
