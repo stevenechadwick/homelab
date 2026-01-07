@@ -35,6 +35,23 @@ spec:
         env:
         - name: TZ
           value: "America/New_York"
+        - name: GITEA__security__INSTALL_LOCK
+          value: "true"
+        - name: GITEA__security__SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gitea-internal-token
+              key: INTERNAL_TOKEN
+        - name: GITEA_ADMIN_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: gitea-admin-credentials
+              key: GITEA_ADMIN_USERNAME
+        - name: GITEA_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: gitea-admin-credentials
+              key: GITEA_ADMIN_PASSWORD
         volumeMounts:
         - name: data
           mountPath: /data
