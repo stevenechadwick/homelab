@@ -10,3 +10,17 @@ spec:
   resources:
     requests:
       storage: 20Gi
+---
+# PVC for Gitea Actions runner build cache
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitea-runner-cache
+  namespace: gitea
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 5Gi

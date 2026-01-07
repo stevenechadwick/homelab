@@ -81,18 +81,3 @@ spec:
       - name: cache
         persistentVolumeClaim:
           claimName: gitea-runner-cache
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: gitea-runner-cache
-  namespace: gitea
-  labels:
-    app: gitea-runner
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: longhorn
-  resources:
-    requests:
-      storage: 5Gi
