@@ -3,6 +3,10 @@
 #
 # Buildah is a daemonless container image builder that replaces Kaniko.
 # It uses chroot isolation and doesn't require privileged containers.
+#
+# Note: This workflow uses shell commands for checkout to avoid JavaScript
+# action dependencies. For production use, ensure your runner has proper
+# network access to clone repositories.
 
 name: Build and Push Container Image
 
@@ -19,27 +23,21 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: quay.io/buildah/stable:latest
-      options: --security-opt seccomp=unconfined
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Buildah
+      - name: Clone repository
         run: |
-          # Configure Buildah for rootless operation
-          export BUILDAH_ISOLATION=chroot
-          export STORAGE_DRIVER=vfs
-          buildah version
+          git clone $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git .
+          git checkout $GITHUB_SHA
+          echo "Checked out $GITHUB_SHA"
 
-      - name: Log in to Container Registry
+      - name: Install Buildah
         run: |
-          buildah login \
-            --username ${{ gitea.actor }} \
-            --password ${{ secrets.REGISTRY_TOKEN }} \
-            ${{ env.REGISTRY }}
+          . /etc/os-release
+          sudo sh -c "echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_${VERSION_ID}/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list"
+          curl -fsSL "https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/xUbuntu_${VERSION_ID}/Release.key" | sudo apt-key add -
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y buildah
 
       - name: Build Container Image
         run: |
@@ -47,16 +45,24 @@ jobs:
             --isolation chroot \
             --format docker \
             --layers \
-            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ gitea.sha }} \
-            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            --tag $REGISTRY/$IMAGE_NAME:$GITHUB_SHA \
+            --tag $REGISTRY/$IMAGE_NAME:latest \
             .
+
+      - name: Log in to Container Registry
+        if: github.event_name == 'push'
+        run: |
+          echo "${{ secrets.REGISTRY_PASSWORD }}" | \
+            buildah login --username ${{ gitea.actor }} --password-stdin $REGISTRY
 
       - name: Push to Registry
         if: github.event_name == 'push'
         run: |
-          buildah push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ gitea.sha }}
-          buildah push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          buildah push $REGISTRY/$IMAGE_NAME:$GITHUB_SHA
+          buildah push $REGISTRY/$IMAGE_NAME:latest
 
-      - name: Clean up
+      - name: Summary
         run: |
-          buildah logout ${{ env.REGISTRY }}
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: $REGISTRY/$IMAGE_NAME:$GITHUB_SHA" >> $GITHUB_STEP_SUMMARY
+          buildah images
