@@ -17,9 +17,16 @@ spec:
       labels:
         app: gitea
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
       - name: gitea
-        image: gitea/gitea:latest
+        image: gitea/gitea:1.22
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
         ports:
         - name: http
           containerPort: 3000
@@ -58,6 +65,14 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /api/healthz
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
       volumes:
       - name: data
         persistentVolumeClaim:
