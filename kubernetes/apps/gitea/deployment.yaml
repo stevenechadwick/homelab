@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitea
+  namespace: gitea
+  labels:
+    app: gitea
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: gitea
+  template:
+    metadata:
+      labels:
+        app: gitea
+    spec:
+      containers:
+      - name: gitea
+        image: gitea/gitea:latest
+        ports:
+        - name: http
+          containerPort: 3000
+        - name: ssh
+          containerPort: 22
+        env:
+        - name: TZ
+          value: "America/New_York"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: config
+          mountPath: /data/gitea/conf/app.ini
+          subPath: app.ini
+          readOnly: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /api/healthz
+            port: 3000
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/healthz
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: gitea-data
+      - name: config
+        configMap:
+          name: gitea-config
