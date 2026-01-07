@@ -5,6 +5,7 @@ metadata:
   namespace: gitea
 spec:
   entryPoints:
+  - web
   - websecure
   routes:
   - match: Host(`gitea.homelab.local`)
