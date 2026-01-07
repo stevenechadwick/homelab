@@ -1,0 +1,16 @@
+# HelmChartConfig to add SSH entrypoint for Gitea git operations
+# This patches the k3s-managed Traefik deployment to expose port 22 TCP
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |
+    ports:
+      ssh:
+        port: 22
+        expose:
+          default: true
+        exposedPort: 22
+        protocol: TCP
