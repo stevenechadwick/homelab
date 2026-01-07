@@ -9,3 +9,7 @@ resources:
   - configmap.yaml
   - certificate.yaml
   - deployment.yaml
+  - service.yaml
+  - service-ssh.yaml
+  - ingress.yaml
+  - ingress-ssh.yaml

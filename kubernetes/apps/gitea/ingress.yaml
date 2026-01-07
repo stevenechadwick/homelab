@@ -1,0 +1,19 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gitea
+  namespace: gitea
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`gitea.homelab.local`)
+    kind: Rule
+    middlewares:
+    - name: authelia
+      namespace: kube-system
+    services:
+    - name: gitea
+      port: 80
+  tls:
+    secretName: gitea-homelab-tls
