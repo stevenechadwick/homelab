@@ -23,6 +23,9 @@ data:
       Infrastructure:
         style: row
         columns: 3
+      Development:
+        style: row
+        columns: 2
 
   services.yaml: |
     - Management:
@@ -101,6 +104,11 @@ data:
             description: Metrics Collection
             icon: prometheus.png
 
+    - Development:
+        - Gitea:
+            href: https://gitea.homelab.local
+            description: Git Server & CI/CD
+            icon: gitea.png
 
   widgets.yaml: |
     - logo:

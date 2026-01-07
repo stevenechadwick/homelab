@@ -10,7 +10,6 @@ spec:
     ports:
       ssh:
         port: 22
-        expose:
-          default: true
+        expose: true
         exposedPort: 22
         protocol: TCP
