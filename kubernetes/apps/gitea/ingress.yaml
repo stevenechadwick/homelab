@@ -12,7 +12,6 @@ spec:
     kind: Rule
     middlewares:
     - name: authelia
-      namespace: kube-system
     services:
     - name: gitea
       port: 80

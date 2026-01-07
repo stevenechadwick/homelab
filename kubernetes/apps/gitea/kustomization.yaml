@@ -9,6 +9,7 @@ resources:
   - configmap.yaml
   - secret.yaml
   - certificate.yaml
+  - authelia-middleware.yaml
   - deployment.yaml
   - service.yaml
   - service-ssh.yaml
