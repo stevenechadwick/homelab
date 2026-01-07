@@ -19,9 +19,33 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+      initContainers:
+      - name: init-permissions
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          # Fix permissions on data volume
+          chown -R 1000:1000 /var/lib/gitea
+          chmod -R 755 /var/lib/gitea
+          # Copy config to writable directory and set permissions
+          mkdir -p /etc/gitea
+          cp /etc/gitea-source/app.ini /etc/gitea/app.ini
+          chown -R 1000:1000 /etc/gitea
+          chmod 644 /etc/gitea/app.ini
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/gitea
+        - name: config-source
+          mountPath: /etc/gitea-source
+        - name: config
+          mountPath: /etc/gitea
       containers:
       - name: gitea
-        image: gitea/gitea:1.22
+        image: gitea/gitea:1.22-rootless
         securityContext:
           runAsNonRoot: true
           runAsUser: 1000
@@ -54,11 +78,9 @@ spec:
               key: GITEA_ADMIN_PASSWORD
         volumeMounts:
         - name: data
-          mountPath: /data
+          mountPath: /var/lib/gitea
         - name: config
-          mountPath: /data/gitea/conf/app.ini
-          subPath: app.ini
-          readOnly: true
+          mountPath: /etc/gitea
         resources:
           requests:
             memory: "256Mi"
@@ -94,6 +116,8 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: gitea-data
-      - name: config
+      - name: config-source
         configMap:
           name: gitea-config
+      - name: config
+        emptyDir: {}
