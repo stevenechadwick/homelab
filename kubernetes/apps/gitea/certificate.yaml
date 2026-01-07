@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gitea-homelab-cert
+  namespace: gitea
+spec:
+  secretName: gitea-homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  commonName: gitea.homelab.local
+  dnsNames:
+  - gitea.homelab.local
