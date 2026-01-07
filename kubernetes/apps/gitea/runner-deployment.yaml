@@ -1,3 +1,5 @@
+# Gitea Actions Runner with Docker-in-Docker (dind) sidecar
+# This allows the runner to build container images using Kaniko or Docker
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -7,7 +9,7 @@ metadata:
   labels:
     app: gitea-runner
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: gitea-runner
@@ -16,19 +18,31 @@ spec:
       labels:
         app: gitea-runner
     spec:
-      securityContext:
-        fsGroup: 1000
       containers:
+      # Runner container - executes CI/CD jobs
       - name: runner
         image: gitea/act_runner:0.2.13
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 1000
-          allowPrivilegeEscalation: false
+        command:
+        - sh
+        - -c
+        - |
+          # Wait for Docker daemon to be ready
+          while ! nc -z localhost 2376; do
+            echo "Waiting for Docker daemon..."
+            sleep 2
+          done
+          echo "Docker daemon is ready"
+          # Start the runner
+          /usr/local/bin/run.sh
         env:
         - name: TZ
           value: "America/New_York"
+        - name: DOCKER_HOST
+          value: tcp://localhost:2376
+        - name: DOCKER_TLS_VERIFY
+          value: "1"
+        - name: DOCKER_CERT_PATH
+          value: /certs/client
         - name: GITEA_INSTANCE_URL
           value: "http://gitea.gitea.svc.cluster.local:80"
         - name: GITEA_RUNNER_REGISTRATION_TOKEN
@@ -45,6 +59,9 @@ spec:
         volumeMounts:
         - name: runner-data
           mountPath: /data
+        - name: docker-certs
+          mountPath: /certs
+          readOnly: true
         - name: cache
           mountPath: /root/.cache
         resources:
@@ -74,10 +91,37 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
+
+      # Docker-in-Docker sidecar - provides Docker daemon for building images
+      - name: dind
+        image: docker:27-dind
+        securityContext:
+          privileged: true
+        env:
+        - name: DOCKER_TLS_CERTDIR
+          value: /certs
+        volumeMounts:
+        - name: docker-certs
+          mountPath: /certs
+        - name: dind-storage
+          mountPath: /var/lib/docker
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+
       volumes:
       - name: runner-data
         emptyDir:
           sizeLimit: 10Gi
+      - name: docker-certs
+        emptyDir: {}
+      - name: dind-storage
+        emptyDir:
+          sizeLimit: 20Gi
       - name: cache
         persistentVolumeClaim:
           claimName: gitea-runner-cache
