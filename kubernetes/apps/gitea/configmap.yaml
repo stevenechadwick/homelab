@@ -9,10 +9,31 @@ data:
     DOMAIN = gitea.homelab.local
     ROOT_URL = https://gitea.homelab.local/
     SSH_DOMAIN = gitea.homelab.local
+    SSH_PORT = 22
+    # Enable built-in SSH server for git operations
+    START_SSH_SERVER = true
+
+    [database]
+    DB_TYPE = sqlite3
+    # SQLite database stored on persistent volume for data durability
+    PATH = /data/gitea/gitea.db
 
     [packages]
+    # Enable Gitea package registry (npm, docker, etc.)
     ENABLED = true
 
     [actions]
+    # Enable Gitea Actions for CI/CD workflows
     ENABLED = true
+    # Use GitHub as default source for reusable actions
     DEFAULT_ACTIONS_URL = https://github.com
+
+    [security]
+    # Skip initial installation wizard - configuration is managed via this ConfigMap
+    INSTALL_LOCK = true
+
+    [service]
+    # Allow new user registration (set to true for private instances)
+    DISABLE_REGISTRATION = false
+    # Allow browsing without authentication (set to true for private instances)
+    REQUIRE_SIGNIN_VIEW = false
