@@ -37,3 +37,10 @@ data:
     DISABLE_REGISTRATION = false
     # Allow browsing without authentication (set to true for private instances)
     REQUIRE_SIGNIN_VIEW = false
+
+    [metrics]
+    # Enable Prometheus metrics endpoint at /metrics
+    ENABLED = true
+    # Allow unauthenticated access to metrics (required for Prometheus scraping)
+    ENABLED_ISSUE_BY_LABEL = false
+    ENABLED_ISSUE_BY_REPOSITORY = false
