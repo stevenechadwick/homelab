@@ -53,7 +53,7 @@ data:
       name: authelia_session
       same_site: lax
       expiration: 1h
-      inactivity: 5m
+      inactivity: 1h
       remember_me_duration: 1M
       cookies:
         - domain: homelab.local
@@ -72,3 +72,8 @@ data:
     notifier:
       filesystem:
         filename: /config/notification.txt
+
+    telemetry:
+      metrics:
+        enabled: true
+        address: tcp://0.0.0.0:9959

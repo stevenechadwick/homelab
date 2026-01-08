@@ -22,6 +22,9 @@ spec:
         image: authelia/authelia:latest
         ports:
         - containerPort: 9091
+          name: http
+        - containerPort: 9959
+          name: metrics
         env:
         - name: TZ
           value: "America/New_York"
