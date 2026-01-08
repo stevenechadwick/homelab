@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: investment-bot
+  namespace: monitoring
+  labels:
+    app: investment-bot
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: investment-bot
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - investment-bot
