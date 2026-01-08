@@ -4,8 +4,8 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - configmap.yaml
-  - secret.yaml
-  - users-secret.yaml
+  - sealed-secrets.yaml
+  - sealed-users.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml

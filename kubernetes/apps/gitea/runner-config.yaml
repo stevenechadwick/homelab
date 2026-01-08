@@ -27,5 +27,5 @@ data:
       options: >-
         -e DOCKER_HOST=tcp://host.docker.internal:2375
         --add-host=host.docker.internal:host-gateway
-        --add-host=gitea.homelab.local:10.43.46.7
+        --add-host=gitea.gitea.svc.cluster.local:10.43.46.7
       workdir_parent: workspace

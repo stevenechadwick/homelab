@@ -3,9 +3,14 @@
 kubeconfig-*
 *.pat
 *.token
+cookies.txt
+
+# Plaintext secrets (NOT sealed secrets)
 secrets.yaml
+secret.yaml
 *-secret.yaml
 *-secrets.yaml
+!sealed-*.yaml
 *users-database.yaml
 authelia-users-database.yaml
 *.key

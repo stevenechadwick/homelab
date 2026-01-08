@@ -1,0 +1,18 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: gitea-runner-token
+  namespace: gitea
+spec:
+  encryptedData:
+    token: AgBnSY2L4uhcbbT1uYb1wXKD49OHLre+cliTW04F2uoWSEZTjchcfYbkPDdpHoHNiQkCDRxAbf8vaGNSNjKI+hZpfZCJfXcyiMaaGrMtWWCAe3XYp1bRWiVG2gCA1wz3CA53/Cr7vgoiU4TxE3Q94APaPrGbmQvKngQpBJx5ksvi8hRC/Ji2skx1BrtU6T4Q4dAT6YMFEnrRe0PDF/vLZN4LGVGPi5KBX+5R7LRAIse17E36yKsDobLhXKfRczoAnLS9ULSjiV1Fwrub0i5twGHf6b251NXe01S3yJ3j/8iHf+/wh8pVBC3OaZi1z0l1zgFVjTuh/kJ/rnKDBNnhgPD2O23ULzoduvYcdUx+N4MGZqMQ7DZv6Q/sDEnoYcPIH282xPBmT5JBbit86ejOiF4KJjJNetAwEt7N0QK2X6cFOo/EkMaxCm3aDkNrBPNlM6LXhvYrVZHPj8OTF05beHEmAfPWm/N01+wl/Dqtak06ZfXfnNWYAInzhzYOwAx/Hxwre4PKT6HT/htLDid7lXl5DK8dZU7QxDny3kph6D7mmmG7OxVPIYaw3HY0wnSTpKo324mO3HglL2oxNbkc6cr7wUi46Wj26lr7bgXWvRMf2jLPzSbeuIjz4Q63BGmQ2ye9eASiS/aE8MigQAu5LPxpxWoZmBwIJWULfIKgBgqXO1bUWk8ZYjTq5bEkE+ccNsvB5ux6SGzTYL5UD9C5cjgqzsAFhaGOChvbiP6TsuFx26xqPCq+uAbc
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: gitea-runner
+      name: gitea-runner-token
+      namespace: gitea
+    type: Opaque

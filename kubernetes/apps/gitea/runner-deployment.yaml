@@ -106,8 +106,11 @@ spec:
       # Docker-in-Docker sidecar - provides Docker daemon for building images
       # TLS disabled for pod-internal communication (localhost only)
       # Registry CA mounted for secure pushes to gitea.homelab.local
+      # Insecure registry for internal HTTP access to gitea.gitea.svc.cluster.local
       - name: dind
         image: docker:27-dind
+        args:
+          - "--insecure-registry=gitea.gitea.svc.cluster.local"
         securityContext:
           privileged: true
         env:

@@ -35,7 +35,7 @@ kubectl apply -f kubernetes/argocd-repo-config.yaml
 ### 3. Access ArgoCD UI
 - URL: https://argocd.homelab.local
 - Username: admin
-- Password: REDACTED
+- Password: (retrieve with `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d`)
 
 ### 4. Verify Applications
 The following ArgoCD Applications will be created:
