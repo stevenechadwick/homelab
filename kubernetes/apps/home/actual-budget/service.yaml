@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: actual-budget
+  namespace: home
+  labels:
+    app: actual-budget
+spec:
+  selector:
+    app: actual-budget
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5006
+  type: ClusterIP

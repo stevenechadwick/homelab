@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: budget-homelab-cert
+  namespace: home
+spec:
+  secretName: budget-homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  commonName: budget.homelab.local
+  dnsNames:
+  - budget.homelab.local
