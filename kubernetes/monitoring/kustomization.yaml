@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - grafana-ingress.yaml
+  - prometheus-ingress.yaml
+  - metallb-monitoring.yaml
+  - exportarr.yaml
+  - plex-exporter.yaml
+  - qbittorrent-exporter.yaml
+  - investment-bot-service.yaml
+  - overseerr-servicemonitor.yaml
+  - servicemonitor-argocd.yaml
+  - servicemonitor-authelia.yaml
+  - servicemonitor-gitea.yaml
+  - servicemonitor-home-assistant.yaml
+  - servicemonitor-investment-bot.yaml
+  - servicemonitor-longhorn.yaml
+  - servicemonitor-traefik.yaml
+  - dashboards/

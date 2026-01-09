@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - argocd.yaml
+  - authelia.yaml
+  - coredns-full.yaml
+  - gitea.yaml
+  - home-dashboard.yaml
+  - home-productivity.yaml
+  - investment-bot.yaml
+  - kubernetes-overview.yaml
+  - longhorn-full.yaml
+  - media-services.yaml
+  - namespace-usage.yaml
+  - node-exporter.yaml
+  - traefik-full.yaml
