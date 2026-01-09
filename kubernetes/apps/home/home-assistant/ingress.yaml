@@ -1,0 +1,19 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: home-assistant
+  namespace: home
+spec:
+  entryPoints:
+  - web
+  - websecure
+  routes:
+  - match: Host(`assistant.homelab.local`)
+    kind: Rule
+    middlewares:
+    - name: authelia
+    services:
+    - name: home-assistant
+      port: 80
+  tls:
+    secretName: assistant-homelab-tls
