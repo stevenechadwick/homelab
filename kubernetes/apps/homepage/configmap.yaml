@@ -26,6 +26,9 @@ data:
       Development:
         style: row
         columns: 2
+      Home & Productivity:
+        style: row
+        columns: 3
 
   services.yaml: |
     - Management:
@@ -109,6 +112,22 @@ data:
             href: https://gitea.homelab.local
             description: Git Server & CI/CD
             icon: gitea.png
+
+    - Home & Productivity:
+        - Home Assistant:
+            href: https://assistant.homelab.local
+            description: Smart Home Hub
+            icon: home-assistant.png
+
+        - Actual Budget:
+            href: https://budget.homelab.local
+            description: Personal Finance
+            icon: actual.png
+
+        - Mealie:
+            href: https://mealie.homelab.local
+            description: Recipe Manager
+            icon: mealie.png
 
   widgets.yaml: |
     - logo:
