@@ -5,4 +5,3 @@ resources:
   - deployment.yaml
   - ingress.yaml
   - proton-vpn-config.yaml
-  - proton-vpn-secret.yaml
