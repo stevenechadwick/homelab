@@ -26,6 +26,9 @@ data:
             192.168.87.10 qbittorrent.homelab.local
             192.168.87.10 overseerr.homelab.local
             192.168.87.10 gitea.homelab.local
+            192.168.87.10 assistant.homelab.local
+            192.168.87.10 budget.homelab.local
+            192.168.87.10 mealie.homelab.local
             fallthrough
         }
         prometheus :9153
