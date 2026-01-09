@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mealie
+  namespace: home
+  labels:
+    app: mealie
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mealie
+  template:
+    metadata:
+      labels:
+        app: mealie
+    spec:
+      containers:
+      - name: mealie
+        image: hkotel/mealie:latest
+        ports:
+        - name: http
+          containerPort: 9000
+        env:
+        - name: TZ
+          value: "America/New_York"
+        - name: ALLOW_SIGNUP
+          value: "false"
+        - name: BASE_URL
+          value: "https://mealie.homelab.local"
+        - name: MAX_WORKERS
+          value: "1"
+        - name: WEB_CONCURRENCY
+          value: "1"
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/app/about
+            port: 9000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /api/app/about
+            port: 9000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: mealie-data

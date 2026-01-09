@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mealie-homelab-cert
+  namespace: home
+spec:
+  secretName: mealie-homelab-tls
+  issuerRef:
+    name: homelab-ca-issuer
+    kind: ClusterIssuer
+  commonName: mealie.homelab.local
+  dnsNames:
+  - mealie.homelab.local
