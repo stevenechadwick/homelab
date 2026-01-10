@@ -5,7 +5,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - configmap.yaml
-  - background-configmap.yaml
+  # background-configmap.yaml removed - image now served via image-server.yaml
   - ingress.yaml
   - ingress-complete.yaml
   - ingress-fallback.yaml
