@@ -32,12 +32,17 @@ spec:
         app: homepage-image-server
     spec:
       initContainers:
-      - name: copy-image
+      - name: download-image
         image: busybox
-        command: ['sh', '-c', 'cp /source/cinnamoroll-5k-cute-5120x5120-11712.png /target/']
+        command:
+        - sh
+        - -c
+        - |
+          wget -O /target/cinnamoroll-5k-cute-5120x5120-11712.png \
+            "https://images.wallpaperscraft.com/image/single/cinnamoroll_art_pink_127712_5120x5120.jpg" \
+            || echo "Failed to download, creating placeholder" && \
+               echo "placeholder" > /target/cinnamoroll-5k-cute-5120x5120-11712.png
         volumeMounts:
-        - name: image-source
-          mountPath: /source
         - name: html-storage
           mountPath: /target
       containers:
@@ -52,10 +57,6 @@ spec:
         - name: html-storage
           mountPath: /usr/share/nginx/html
       volumes:
-      - name: image-source
-        hostPath:
-          path: /Users/steve/Development/homelab
-          type: Directory
       - name: html-storage
         emptyDir: {}
       - name: nginx-config
