@@ -29,6 +29,7 @@ data:
             192.168.87.10 assistant.homelab.local
             192.168.87.10 budget.homelab.local
             192.168.87.10 mealie.homelab.local
+            192.168.87.10 investment-bot.homelab.local
             fallthrough
         }
         prometheus :9153
