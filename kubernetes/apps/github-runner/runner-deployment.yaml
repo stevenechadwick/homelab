@@ -1,0 +1,162 @@
+# GitHub Actions self-hosted runner with Docker-in-Docker sidecar.
+#
+# Single long-lived runner. On startup it exchanges the stored PAT for a fresh
+# registration token via the GitHub API, then runs config.sh + run.sh. The
+# runner work dir is on a PVC so npm/Playwright/Next caches survive restarts.
+# DinD storage is also on a PVC so Supabase images stay cached.
+#
+# Replicas is 1 — GitHub handles job queueing on its side. Bump if you want
+# parallelism (each replica needs its own work PVC; switch to a StatefulSet).
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-runner
+  namespace: github-runner
+  labels:
+    app: github-runner
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # ReadWriteOnce PVCs can't be shared across pods
+  selector:
+    matchLabels:
+      app: github-runner
+  template:
+    metadata:
+      labels:
+        app: github-runner
+    spec:
+      imagePullSecrets:
+        - name: gitea-registry-secret
+      containers:
+        # ---------------------------------------------------------------
+        # Runner: registers with GitHub and executes workflow jobs.
+        # ---------------------------------------------------------------
+        - name: runner
+          image: gitea.homelab.local/gitea_admin/github-runner:latest  # built from runner-image/Dockerfile
+          imagePullPolicy: Always
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+
+              # Wait for DinD to be ready
+              until docker info >/dev/null 2>&1; do
+                echo "waiting for docker daemon..."
+                sleep 2
+              done
+              echo "docker daemon ready"
+
+              cd /home/runner/actions-runner
+
+              # If not yet configured, exchange the PAT for a registration
+              # token and register against the repo. Persisted on the PVC.
+              if [ ! -f .runner ]; then
+                echo "fetching registration token from GitHub API..."
+                REG_TOKEN=$(curl -fsSL \
+                  -X POST \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "Authorization: Bearer ${GH_PAT}" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  "https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/actions/runners/registration-token" \
+                  | jq -r .token)
+
+                ./config.sh \
+                  --unattended \
+                  --replace \
+                  --url "https://github.com/${GH_OWNER}/${GH_REPO}" \
+                  --token "${REG_TOKEN}" \
+                  --name "${RUNNER_NAME}" \
+                  --labels "self-hosted,linux,arm64,homelab,dojo-e2e" \
+                  --work _work
+              fi
+
+              # Trap shutdown so the runner deregisters cleanly
+              cleanup() {
+                echo "deregistering runner..."
+                REMOVE_TOKEN=$(curl -fsSL \
+                  -X POST \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "Authorization: Bearer ${GH_PAT}" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  "https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/actions/runners/remove-token" \
+                  | jq -r .token)
+                ./config.sh remove --token "${REMOVE_TOKEN}" || true
+              }
+              trap cleanup EXIT
+
+              ./run.sh
+          env:
+            - name: RUNNER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: DOCKER_HOST
+              value: tcp://localhost:2375
+            - name: GH_PAT
+              valueFrom:
+                secretKeyRef:
+                  name: github-runner-pat
+                  key: token
+            - name: GH_OWNER
+              valueFrom:
+                secretKeyRef:
+                  name: github-runner-pat
+                  key: owner
+            - name: GH_REPO
+              valueFrom:
+                secretKeyRef:
+                  name: github-runner-pat
+                  key: repo
+            # Tell npm / Playwright / Next to use the persistent volume
+            - name: HOME
+              value: /home/runner
+            - name: NPM_CONFIG_CACHE
+              value: /home/runner/.npm
+            - name: PLAYWRIGHT_BROWSERS_PATH
+              value: /home/runner/.cache/ms-playwright
+          volumeMounts:
+            - name: runner-work
+              mountPath: /home/runner
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "500m"
+            limits:
+              memory: "6Gi"
+              cpu: "4000m"
+
+        # ---------------------------------------------------------------
+        # DinD sidecar: gives the runner a real Docker daemon for
+        # `supabase start` and any docker-based steps.
+        # ---------------------------------------------------------------
+        - name: dind
+          image: docker:27-dind
+          args:
+            - "--host=tcp://0.0.0.0:2375"
+            - "--tls=false"
+          securityContext:
+            privileged: true
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+          volumeMounts:
+            - name: dind-storage
+              mountPath: /var/lib/docker
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "8Gi"
+              cpu: "4000m"
+
+      volumes:
+        - name: runner-work
+          persistentVolumeClaim:
+            claimName: github-runner-work
+        - name: dind-storage
+          persistentVolumeClaim:
+            claimName: github-runner-dind

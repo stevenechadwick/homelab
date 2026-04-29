@@ -1,0 +1,30 @@
+# Persistent runner work directory: keeps _work/, npm cache, Playwright
+# browsers, and Next.js .next/cache warm across runs. This is what makes the
+# self-hosted runner faster than GitHub-hosted: no actions/cache download/upload.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: github-runner-work
+  namespace: github-runner
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 30Gi
+---
+# DinD image/container storage. Keeping /var/lib/docker on a PVC means
+# `supabase start` doesn't re-pull ~8 images every run.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: github-runner-dind
+  namespace: github-runner
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 30Gi
