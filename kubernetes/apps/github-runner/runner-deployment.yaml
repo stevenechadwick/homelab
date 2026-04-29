@@ -27,6 +27,11 @@ spec:
       labels:
         app: github-runner
     spec:
+      # Pin to the 32Gi node — the E2E peak (Next build + Playwright + Supabase
+      # stack) can hit 4-8Gi RAM and the pod limit is 14Gi. The 8Gi nodes can't
+      # hold this safely.
+      nodeSelector:
+        kubernetes.io/hostname: node02
       imagePullSecrets:
         - name: gitea-registry-secret
       containers:
