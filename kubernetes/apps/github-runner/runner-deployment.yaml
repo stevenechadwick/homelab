@@ -32,6 +32,13 @@ spec:
       # hold this safely.
       nodeSelector:
         kubernetes.io/hostname: node02
+      # Make the runner-work PVC writable by the runner user (uid 1001).
+      # Without this, kubelet mounts the volume root:root and rsync can't
+      # populate /home/runner/actions-runner from the image.
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
       imagePullSecrets:
         - name: gitea-registry-secret
       containers:
