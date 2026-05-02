@@ -30,7 +30,8 @@ FROM ubuntu:22.04
 ARG TARGETARCH
 ARG RUNNER_VERSION=2.334.0
 ARG NODE_MAJOR=20
-ARG SUPABASE_CLI_VERSION=1.226.4
+ARG SUPABASE_CLI_VERSION=2.84.2
+ARG PLAYWRIGHT_VERSION=1.59.1
 
 ENV DEBIAN_FRONTEND=noninteractive \
     RUNNER_ALLOW_RUNASROOT=0 \
@@ -86,7 +87,7 @@ RUN mkdir -p /opt/actions-runner && cd /opt/actions-runner \
 # Playwright system deps + chromium at /opt/ms-playwright (also outside /home/runner).
 RUN mkdir -p /opt/ms-playwright \
     && chown runner:runner /opt/ms-playwright \
-    && su - runner -c "PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright npx --yes playwright@1.49.1 install --with-deps chromium" \
+    && su - runner -c "PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright npx --yes playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium" \
     && rm -rf /var/lib/apt/lists/*
 
 USER runner
