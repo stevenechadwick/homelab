@@ -1,0 +1,335 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: github-runner-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: Apps
+data:
+  github-runner.json: |
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "description": "Self-hosted GitHub Actions runner for the dojo repo - resource usage, PVC capacity, and pod health.",
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "refresh": "30s",
+      "schemaVersion": 39,
+      "tags": ["github", "ci", "self-hosted-runner"],
+      "time": {"from": "now-3h", "to": "now"},
+      "timepicker": {},
+      "timezone": "",
+      "title": "GitHub Runner",
+      "uid": "github-runner",
+      "version": 1,
+      "weekStart": "",
+      "panels": [
+        {
+          "type": "row",
+          "id": 100,
+          "title": "Status",
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+          "collapsed": false,
+          "panels": []
+        },
+        {
+          "type": "stat",
+          "id": 1,
+          "title": "Pod Ready",
+          "gridPos": {"h": 4, "w": 4, "x": 0, "y": 1},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "max(kube_pod_status_ready{namespace=\"github-runner\", condition=\"true\"})",
+              "refId": "A",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "orientation": "auto",
+            "textMode": "auto",
+            "colorMode": "background",
+            "graphMode": "none"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {"options": {"0": {"text": "DOWN", "color": "red"}}, "type": "value"},
+                {"options": {"1": {"text": "UP", "color": "green"}}, "type": "value"}
+              ],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}
+            }
+          }
+        },
+        {
+          "type": "stat",
+          "id": 2,
+          "title": "Container Restarts (24h)",
+          "gridPos": {"h": 4, "w": 4, "x": 4, "y": 1},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"github-runner\"}[24h]))",
+              "refId": "A",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "colorMode": "value", "graphMode": "area"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]},
+              "decimals": 0
+            }
+          }
+        },
+        {
+          "type": "stat",
+          "id": 3,
+          "title": "Work PVC Used",
+          "gridPos": {"h": 4, "w": 4, "x": 8, "y": 1},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "100 * kubelet_volume_stats_used_bytes{namespace=\"github-runner\", persistentvolumeclaim=\"github-runner-work\"} / kubelet_volume_stats_capacity_bytes{namespace=\"github-runner\", persistentvolumeclaim=\"github-runner-work\"}",
+              "refId": "A",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "colorMode": "value"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent", "decimals": 1, "min": 0, "max": 100,
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 90}]}
+            }
+          }
+        },
+        {
+          "type": "stat",
+          "id": 4,
+          "title": "DinD PVC Used",
+          "gridPos": {"h": 4, "w": 4, "x": 12, "y": 1},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "100 * kubelet_volume_stats_used_bytes{namespace=\"github-runner\", persistentvolumeclaim=\"github-runner-dind\"} / kubelet_volume_stats_capacity_bytes{namespace=\"github-runner\", persistentvolumeclaim=\"github-runner-dind\"}",
+              "refId": "A",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "colorMode": "value"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent", "decimals": 1, "min": 0, "max": 100,
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 90}]}
+            }
+          }
+        },
+        {
+          "type": "stat",
+          "id": 5,
+          "title": "Pod Age",
+          "gridPos": {"h": 4, "w": 4, "x": 16, "y": 1},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "time() - max(kube_pod_start_time{namespace=\"github-runner\"})",
+              "refId": "A",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "colorMode": "none", "graphMode": "none"
+          },
+          "fieldConfig": {"defaults": {"unit": "s"}}
+        },
+        {
+          "type": "stat",
+          "id": 6,
+          "title": "Node",
+          "gridPos": {"h": 4, "w": 4, "x": 20, "y": 1},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "kube_pod_info{namespace=\"github-runner\"}",
+              "refId": "A",
+              "legendFormat": "{{node}}",
+              "format": "table",
+              "instant": true
+            }
+          ],
+          "options": {
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/^node$/", "values": false},
+            "textMode": "value", "colorMode": "none", "graphMode": "none"
+          }
+        },
+        {
+          "type": "row",
+          "id": 101,
+          "title": "Resource Usage",
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+          "collapsed": false,
+          "panels": []
+        },
+        {
+          "type": "timeseries",
+          "id": 7,
+          "title": "Memory (working set)",
+          "description": "Solid lines = actual usage. Dashed lines = container limit. Pod cap is 14 GiB total (runner 6 + dind 8).",
+          "gridPos": {"h": 9, "w": 12, "x": 0, "y": 6},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "container_memory_working_set_bytes{namespace=\"github-runner\", pod=~\"github-runner-.*\", container=~\"runner|dind\", image!=\"\"}",
+              "refId": "A",
+              "legendFormat": "{{container}} (used)"
+            },
+            {
+              "expr": "kube_pod_container_resource_limits{namespace=\"github-runner\", resource=\"memory\", container=~\"runner|dind\"}",
+              "refId": "B",
+              "legendFormat": "{{container}} (limit)"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "custom": {
+                "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2,
+                "fillOpacity": 10, "spanNulls": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {"id": "byRegexp", "options": ".*\\(limit\\)$"},
+                "properties": [
+                  {"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [10, 10]}},
+                  {"id": "custom.fillOpacity", "value": 0}
+                ]
+              }
+            ]
+          },
+          "options": {
+            "tooltip": {"mode": "multi", "sort": "desc"},
+            "legend": {"showLegend": true, "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}
+          }
+        },
+        {
+          "type": "timeseries",
+          "id": 8,
+          "title": "CPU",
+          "description": "Solid lines = actual usage. Dashed lines = container limit (4 cores each).",
+          "gridPos": {"h": 9, "w": 12, "x": 12, "y": 6},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "rate(container_cpu_usage_seconds_total{namespace=\"github-runner\", pod=~\"github-runner-.*\", container=~\"runner|dind\", image!=\"\"}[2m])",
+              "refId": "A",
+              "legendFormat": "{{container}} (used)"
+            },
+            {
+              "expr": "kube_pod_container_resource_limits{namespace=\"github-runner\", resource=\"cpu\", container=~\"runner|dind\"}",
+              "refId": "B",
+              "legendFormat": "{{container}} (limit)"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "custom": {
+                "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2,
+                "fillOpacity": 10, "spanNulls": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {"id": "byRegexp", "options": ".*\\(limit\\)$"},
+                "properties": [
+                  {"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [10, 10]}},
+                  {"id": "custom.fillOpacity", "value": 0}
+                ]
+              }
+            ]
+          },
+          "options": {
+            "tooltip": {"mode": "multi", "sort": "desc"},
+            "legend": {"showLegend": true, "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}
+          }
+        },
+        {
+          "type": "row",
+          "id": 102,
+          "title": "Storage",
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 15},
+          "collapsed": false,
+          "panels": []
+        },
+        {
+          "type": "timeseries",
+          "id": 9,
+          "title": "PVC Usage Over Time",
+          "description": "Tracks growth of cache PVCs. Spikes during runs are normal (DinD pulls images, runner builds).",
+          "gridPos": {"h": 9, "w": 24, "x": 0, "y": 16},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "kubelet_volume_stats_used_bytes{namespace=\"github-runner\"}",
+              "refId": "A",
+              "legendFormat": "{{persistentvolumeclaim}} (used)"
+            },
+            {
+              "expr": "kubelet_volume_stats_capacity_bytes{namespace=\"github-runner\"}",
+              "refId": "B",
+              "legendFormat": "{{persistentvolumeclaim}} (capacity)"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "custom": {
+                "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2,
+                "fillOpacity": 8, "spanNulls": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {"id": "byRegexp", "options": ".*\\(capacity\\)$"},
+                "properties": [
+                  {"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [10, 10]}},
+                  {"id": "custom.fillOpacity", "value": 0}
+                ]
+              }
+            ]
+          },
+          "options": {
+            "tooltip": {"mode": "multi", "sort": "desc"},
+            "legend": {"showLegend": true, "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}
+          }
+        }
+      ]
+    }

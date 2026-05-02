@@ -6,6 +6,7 @@ resources:
   - authelia.yaml
   - coredns-full.yaml
   - gitea.yaml
+  - github-runner.yaml
   - home-dashboard.yaml
   - home-productivity.yaml
   - investment-bot.yaml
