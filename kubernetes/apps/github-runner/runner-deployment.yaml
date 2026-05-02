@@ -54,6 +54,15 @@ spec:
               done
               echo "docker daemon ready"
 
+              # /home/runner is a PVC mount that shadows the image's contents.
+              # Seed the runner binary into it on first boot (or after image bump).
+              if [ ! -x /home/runner/actions-runner/config.sh ]; then
+                echo "seeding actions-runner from /opt..."
+                rsync -a --delete-excluded \
+                  --exclude='_work' --exclude='.runner' --exclude='.credentials*' \
+                  /opt/actions-runner/ /home/runner/actions-runner/
+              fi
+
               cd /home/runner/actions-runner
 
               # If not yet configured, exchange the PAT for a registration
@@ -115,13 +124,14 @@ spec:
                 secretKeyRef:
                   name: github-runner-pat
                   key: repo
-            # Tell npm / Playwright / Next to use the persistent volume
             - name: HOME
               value: /home/runner
             - name: NPM_CONFIG_CACHE
               value: /home/runner/.npm
+            # Browsers live in the image at /opt/ms-playwright (not on the PVC,
+            # so they're available immediately and don't bloat the volume).
             - name: PLAYWRIGHT_BROWSERS_PATH
-              value: /home/runner/.cache/ms-playwright
+              value: /opt/ms-playwright
           volumeMounts:
             - name: runner-work
               mountPath: /home/runner

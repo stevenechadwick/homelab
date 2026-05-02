@@ -5,9 +5,15 @@
 #   - Node 20
 #   - Supabase CLI
 #   - Docker CLI (talks to the DinD sidecar over tcp://localhost:2375)
-#   - Playwright system deps + chromium browser
+#   - Playwright system deps + chromium browser (under /opt/ms-playwright)
 #   - psql client (for the seed step)
 #   - jq, curl, git (used by the entrypoint registration script)
+#
+# Layout note: the actions-runner binary lives at /opt/actions-runner and the
+# Playwright cache at /opt/ms-playwright. /home/runner is mounted from a PVC
+# at runtime, so anything baked there is shadowed. The pod's entrypoint copies
+# the runner into /home/runner/actions-runner on first boot, and the pod env
+# sets PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright.
 #
 # Build & push for arm64 to the internal Gitea registry:
 #   docker buildx build \
@@ -28,7 +34,7 @@ ARG SUPABASE_CLI_VERSION=1.226.4
 
 ENV DEBIAN_FRONTEND=noninteractive \
     RUNNER_ALLOW_RUNASROOT=0 \
-    PLAYWRIGHT_BROWSERS_PATH=/home/runner/.cache/ms-playwright
+    PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
 
 # Map Docker's TARGETARCH (amd64/arm64) to the GitHub runner's arch slug (x64/arm64)
 RUN case "${TARGETARCH}" in \
@@ -39,7 +45,7 @@ RUN case "${TARGETARCH}" in \
 
 # Base packages + Node + Docker CLI repos
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates curl gnupg git jq sudo unzip xz-utils \
+        ca-certificates curl gnupg git jq sudo unzip xz-utils rsync \
         build-essential python3 \
         postgresql-client \
     && install -m 0755 -d /etc/apt/keyrings \
@@ -66,22 +72,22 @@ RUN curl -fsSL "https://github.com/supabase/cli/releases/download/v${SUPABASE_CL
 RUN useradd -m -s /bin/bash -u 1001 runner \
     && echo "runner ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/runner
 
-USER runner
-WORKDIR /home/runner
-
-# GitHub Actions runner binary
-RUN mkdir -p actions-runner && cd actions-runner \
+# GitHub Actions runner binary at /opt/actions-runner (out of /home/runner so
+# the runtime PVC mount doesn't shadow it).
+RUN mkdir -p /opt/actions-runner && cd /opt/actions-runner \
     && RUNNER_ARCH=$(cat /tmp/runner_arch) \
     && curl -fsSL "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz" \
         -o runner.tar.gz \
     && tar xzf runner.tar.gz \
-    && rm runner.tar.gz
+    && rm runner.tar.gz \
+    && ./bin/installdependencies.sh \
+    && chown -R runner:runner /opt/actions-runner
 
-# Playwright system deps + chromium (root needed for apt; then back to runner)
-USER root
-RUN cd /home/runner/actions-runner && ./bin/installdependencies.sh \
-    && su - runner -c "npx --yes playwright@1.49.1 install --with-deps chromium" \
+# Playwright system deps + chromium at /opt/ms-playwright (also outside /home/runner).
+RUN mkdir -p /opt/ms-playwright \
+    && chown runner:runner /opt/ms-playwright \
+    && su - runner -c "PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright npx --yes playwright@1.49.1 install --with-deps chromium" \
     && rm -rf /var/lib/apt/lists/*
 
 USER runner
-WORKDIR /home/runner/actions-runner
+WORKDIR /home/runner
