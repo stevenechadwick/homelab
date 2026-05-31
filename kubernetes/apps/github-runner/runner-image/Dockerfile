@@ -2,7 +2,7 @@
 # Multi-arch capable; intended target is linux/arm64 (homelab nodes).
 #
 # What's baked in:
-#   - Node 20
+#   - Node 22
 #   - Supabase CLI
 #   - Docker CLI (talks to the DinD sidecar over tcp://localhost:2375)
 #   - Playwright system deps + chromium browser (under /opt/ms-playwright)
@@ -29,7 +29,7 @@ FROM ubuntu:22.04
 
 ARG TARGETARCH
 ARG RUNNER_VERSION=2.334.0
-ARG NODE_MAJOR=20
+ARG NODE_MAJOR=22
 ARG SUPABASE_CLI_VERSION=2.84.2
 ARG PLAYWRIGHT_VERSION=1.59.1
 
