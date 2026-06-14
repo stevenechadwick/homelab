@@ -38,8 +38,10 @@ metadata:
     app: github-runner-light
 spec:
   serviceName: github-runner-light
-  replicas: 2
-  podManagementPolicy: Parallel # start both replicas at once; no ordering needed
+  # 4 replicas so all four of Dojo's light jobs (lint/typecheck/unit-tests/danger)
+  # can run in a single wave for one PR.
+  replicas: 4
+  podManagementPolicy: Parallel # start all replicas at once; no ordering needed
   selector:
     matchLabels:
       app: github-runner-light
