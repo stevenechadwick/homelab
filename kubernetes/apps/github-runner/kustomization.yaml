@@ -9,3 +9,4 @@ resources:
   - sealed-runner-pat.yaml
   - sealed-gitea-registry.yaml
   - runner-deployment.yaml
+  - runner-light-statefulset.yaml

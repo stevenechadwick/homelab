@@ -1,0 +1,179 @@
+# Lightweight self-hosted runner pool for Dojo's pure-Node CI jobs
+# (lint, typecheck, unit-tests, danger). Those jobs need only Node — no Docker,
+# Supabase, or Playwright — so this pool runs WITHOUT a DinD sidecar and on
+# modest resources, leaving the heavy `dojo-e2e` runner (node02) untouched.
+#
+# Why a StatefulSet (not a Deployment): each replica gets a stable name and its
+# OWN persistent work PVC, so the npm cache stays warm and the runner stays
+# registered across restarts — same rationale as the e2e runner's PVC, but one
+# volume per replica so they don't contend (ReadWriteOnce can't be shared).
+# Bump `replicas` for more parallelism.
+#
+# Reuses the existing runner image (Node 22 baked in) and the github-runner-pat
+# sealed secret. The label is `dojo-light` so ONLY the light workflows target it.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: github-runner-light
+  namespace: github-runner
+  labels:
+    app: github-runner-light
+spec:
+  # Headless service required by the StatefulSet for stable pod identity.
+  # The runners serve no traffic; the port is nominal.
+  clusterIP: None
+  selector:
+    app: github-runner-light
+  ports:
+    - name: noop
+      port: 9999
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: github-runner-light
+  namespace: github-runner
+  labels:
+    app: github-runner-light
+spec:
+  serviceName: github-runner-light
+  replicas: 2
+  podManagementPolicy: Parallel # start both replicas at once; no ordering needed
+  selector:
+    matchLabels:
+      app: github-runner-light
+  template:
+    metadata:
+      labels:
+        app: github-runner-light
+    spec:
+      # fsGroup chowns each replica's work PVC to gid 1001 so the runner user
+      # can populate /home/runner from the image. (runAsUser is set on the
+      # container; there is no root DinD sidecar here.)
+      securityContext:
+        fsGroup: 1001
+      imagePullSecrets:
+        - name: gitea-registry-secret
+      affinity:
+        # Spread the replicas across nodes when possible (soft, so scheduling
+        # never blocks). Deliberately NOT pinned to node02 — that node is
+        # reserved for the memory-heavy e2e runner; these light pods (~1Gi) fit
+        # the smaller nodes.
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: github-runner-light
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: runner
+          image: gitea.homelab.local/gitea_admin/github-runner:latest
+          imagePullPolicy: Always
+          securityContext:
+            runAsUser: 1001
+            runAsGroup: 1001
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+
+              # No DinD wait — these jobs are pure Node (no docker daemon needed).
+
+              # /home/runner is a PVC mount that shadows the image's contents.
+              # Seed the runner binary into it on first boot (or after image bump).
+              if [ ! -x /home/runner/actions-runner/config.sh ]; then
+                echo "seeding actions-runner from /opt..."
+                rsync -a --delete-excluded \
+                  --exclude='_work' --exclude='.runner' --exclude='.credentials*' \
+                  /opt/actions-runner/ /home/runner/actions-runner/
+              fi
+
+              cd /home/runner/actions-runner
+
+              # If not yet configured, exchange the PAT for a registration token
+              # and register against the repo with the dojo-light label.
+              # Persisted on the PVC, so restarts reuse the registration.
+              if [ ! -f .runner ]; then
+                echo "fetching registration token from GitHub API..."
+                REG_TOKEN=$(curl -fsSL \
+                  -X POST \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "Authorization: Bearer ${GH_PAT}" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  "https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/actions/runners/registration-token" \
+                  | jq -r .token)
+
+                ./config.sh \
+                  --unattended \
+                  --replace \
+                  --url "https://github.com/${GH_OWNER}/${GH_REPO}" \
+                  --token "${REG_TOKEN}" \
+                  --name "${RUNNER_NAME}" \
+                  --labels "self-hosted,linux,arm64,homelab,dojo-light" \
+                  --work _work
+              fi
+
+              # Trap shutdown so the runner deregisters cleanly.
+              cleanup() {
+                echo "deregistering runner..."
+                REMOVE_TOKEN=$(curl -fsSL \
+                  -X POST \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "Authorization: Bearer ${GH_PAT}" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  "https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/actions/runners/remove-token" \
+                  | jq -r .token)
+                ./config.sh remove --token "${REMOVE_TOKEN}" || true
+              }
+              trap cleanup EXIT
+
+              ./run.sh
+          env:
+            - name: RUNNER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name # stable per replica (github-runner-light-0/-1)
+            - name: GH_PAT
+              valueFrom:
+                secretKeyRef:
+                  name: github-runner-pat
+                  key: token
+            - name: GH_OWNER
+              valueFrom:
+                secretKeyRef:
+                  name: github-runner-pat
+                  key: owner
+            - name: GH_REPO
+              valueFrom:
+                secretKeyRef:
+                  name: github-runner-pat
+                  key: repo
+            - name: HOME
+              value: /home/runner
+            - name: NPM_CONFIG_CACHE
+              value: /home/runner/.npm
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              # tsc + jest on the Dojo project can spike to ~2Gi; 4Gi headroom.
+              memory: "4Gi"
+              cpu: "2000m"
+          volumeMounts:
+            - name: runner-work
+              mountPath: /home/runner
+  volumeClaimTemplates:
+    - metadata:
+        name: runner-work
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: longhorn
+        resources:
+          requests:
+            storage: 15Gi
