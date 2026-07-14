@@ -58,10 +58,23 @@ spec:
       imagePullSecrets:
         - name: gitea-registry-secret
       affinity:
-        # Spread the replicas across nodes when possible (soft, so scheduling
-        # never blocks). Deliberately NOT pinned to node02 — that node is
-        # reserved for the memory-heavy e2e runner; these light pods (~1Gi) fit
-        # the smaller nodes.
+        # Keep the light pool OFF node02 — that node is reserved for the
+        # memory-heavy e2e runner (runner+DinD can burst to ~8 cores). A light
+        # pod co-scheduled there fought the e2e/real-db jobs for node02's 8
+        # physical cores under concurrent-PR load, causing real-db timeouts and
+        # rotating unit-test flakes. Hard (required) exclusion enforces the
+        # separation the old soft rule only documented. 4 replicas across the
+        # 3 remaining nodes (two share one node harmlessly at 2x2 cores of 8).
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - node02
+        # Spread the replicas across the remaining nodes when possible (soft, so
+        # scheduling never blocks if a node is briefly unavailable).
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
@@ -165,7 +178,13 @@ spec:
             limits:
               # tsc + jest on the Dojo project can spike to ~2Gi; 4Gi headroom.
               memory: "4Gi"
-              cpu: "2000m"
+              # 4 cores, not 2. jest runs --maxWorkers=2, but the 2 workers plus
+              # the jest main process, V8 GC, and the libuv threadpool together
+              # exceeded a 2000m CFS quota — the pod got throttled mid-period and
+              # heavy component tests blew the 10s/test timeout. The extra 2 cores
+              # absorb that overhead so --maxWorkers=2 gets a real 2 cores. Safe:
+              # light pods now own a dedicated 8-core node (or share one 2-up).
+              cpu: "4000m"
           volumeMounts:
             - name: runner-work
               mountPath: /home/runner
