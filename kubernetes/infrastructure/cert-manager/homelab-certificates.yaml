@@ -57,6 +57,7 @@ spec:
   dnsNames:
     - grafana.homelab.local
     - prometheus.homelab.local
+    - investment-bot.homelab.local
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
