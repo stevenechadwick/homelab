@@ -38,9 +38,13 @@ metadata:
     app: github-runner-light
 spec:
   serviceName: github-runner-light
-  # 4 replicas so all four of Dojo's light jobs (lint/typecheck/unit-tests/danger)
-  # can run in a single wave for one PR.
-  replicas: 4
+  # 3 replicas, not 4. Only node03/node04 are eligible (see nodeAffinity below),
+  # and node03 has just 8Gi of RAM — a 2+2 split would stack 8Gi of memory
+  # *limits* onto it and recreate on node03 the pressure we are fleeing on
+  # node01. Dojo's four light jobs (lint/typecheck/unit-tests/danger) queue
+  # fine across 3 runners; the fourth job waits a few seconds rather than
+  # running on a thrashing node.
+  replicas: 3
   podManagementPolicy: Parallel # start all replicas at once; no ordering needed
   selector:
     matchLabels:
@@ -58,13 +62,26 @@ spec:
       imagePullSecrets:
         - name: gitea-registry-secret
       affinity:
-        # Keep the light pool OFF node02 — that node is reserved for the
-        # memory-heavy e2e runner (runner+DinD can burst to ~8 cores). A light
-        # pod co-scheduled there fought the e2e/real-db jobs for node02's 8
-        # physical cores under concurrent-PR load, causing real-db timeouts and
-        # rotating unit-test flakes. Hard (required) exclusion enforces the
-        # separation the old soft rule only documented. 4 replicas across the
-        # 3 remaining nodes (two share one node harmlessly at 2x2 cores of 8).
+        # Keep the light pool OFF node02 AND node01, leaving node03 + node04.
+        #
+        # node02 is reserved for the memory-heavy e2e runner (runner+DinD can
+        # burst to ~8 cores). A light pod co-scheduled there fought the
+        # e2e/real-db jobs for node02's 8 physical cores under concurrent-PR
+        # load, causing real-db timeouts and rotating unit-test flakes.
+        #
+        # node01 is the K3s control plane and is chronically memory-exhausted:
+        # it hosts ~58 mostly-BestEffort pods (Rancher, ArgoCD, Fleet, Longhorn,
+        # monitoring) that declare no memory requests, so the scheduler
+        # under-counts its true load and keeps placing work there. It sustains
+        # ~100% swap used and ~2-3% memory available, and a light replica that
+        # lands on it runs Dojo's CI jobs 5-10x slower from swap thrashing
+        # (confirmed by paired same-second job-duration comparisons across
+        # replicas). No requests/limits tuning on THIS pod can fix that — the
+        # damage is done by the untracked pods already there — so the node has
+        # to be excluded outright.
+        #
+        # Hard (required) exclusion enforces the separation a soft rule only
+        # documents. node03/node04 both hold 50-76% memory available sustained.
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
@@ -72,6 +89,7 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: NotIn
                     values:
+                      - node01
                       - node02
         # Spread the replicas across the remaining nodes when possible (soft, so
         # scheduling never blocks if a node is briefly unavailable).
