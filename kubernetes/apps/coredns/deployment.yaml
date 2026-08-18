@@ -15,6 +15,18 @@ spec:
       labels:
         app: coredns
     spec:
+      # Both replicas had silently collapsed onto node01 (the control-plane
+      # node) because nothing constrained placement. nodeTaintsPolicy: Honor
+      # excludes node01 from the spread domains once it carries the
+      # control-plane taint, so the two replicas land on two distinct workers.
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        nodeTaintsPolicy: Honor
+        labelSelector:
+          matchLabels:
+            app: coredns
       containers:
       - name: coredns
         image: coredns/coredns:1.11.1

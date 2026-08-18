@@ -13,6 +13,11 @@
       wait_for_connection:
         timeout: 300
         
+    # NOTE: --node-taint only takes effect at first node registration. Adding it
+    # here makes a rebuilt cluster reproduce the taint; it does NOT taint the
+    # already-registered node01. See docs/plans/2026-08-17-node01-control-plane-taint.md
+    # for how to apply it to the running cluster, and for the Longhorn
+    # prerequisite that must be satisfied first.
     - name: Install k3s on master node
       shell: |
         curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION={{ k3s_version }} sh -s - server \
@@ -23,6 +28,7 @@
           --bind-address={{ ansible_host }} \
           --advertise-address={{ ansible_host }} \
           --disable=servicelb \
+          --node-taint=node-role.kubernetes.io/control-plane=true:NoSchedule \
           --tls-san={{ ansible_host }}
       when: k3s_role == "master"
       
