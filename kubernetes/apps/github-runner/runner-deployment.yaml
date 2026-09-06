@@ -28,7 +28,7 @@ spec:
         app: github-runner
     spec:
       # Pin to the 32Gi node — the E2E peak (Next build + Playwright + Supabase
-      # stack) can hit 4-8Gi RAM and the pod limit is 14Gi. The 8Gi nodes can't
+      # stack) can hit 4-8Gi RAM and the pod limit is 16Gi. The 8Gi nodes can't
       # hold this safely.
       nodeSelector:
         kubernetes.io/hostname: node02
@@ -140,6 +140,20 @@ spec:
             # so they're available immediately and don't bloat the volume).
             - name: PLAYWRIGHT_BROWSERS_PATH
               value: /opt/ms-playwright
+            # Node 22's own V8 default old-space ceiling is ~2GiB regardless of
+            # how much memory the container actually has (confirmed live via
+            # `node -e "require('v8').getHeapStatistics()"` in this exact pod:
+            # heap_size_limit ~2.05GiB against a 6Gi cgroup limit). `next build`
+            # was hitting THAT ~2GiB V8 ceiling and aborting with "JavaScript
+            # heap out of memory" / SIGABRT — a V8-internal OOM, not a
+            # container OOM-kill (confirmed: 0 pod restarts, no OOMKilled
+            # events across 5 consecutive failures) — well before the pod's
+            # real memory limit below was ever approached. 4096 sits under the
+            # 8Gi limit below with room for non-heap RSS (native SWC/webpack
+            # buffers, multiple concurrent build-worker processes, which all
+            # inherit this same ceiling).
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=4096"
           volumeMounts:
             - name: runner-work
               mountPath: /home/runner
@@ -148,7 +162,12 @@ spec:
               memory: "2Gi"
               cpu: "500m"
             limits:
-              memory: "6Gi"
+              # Raised 6Gi -> 8Gi alongside the NODE_OPTIONS heap bump above,
+              # to keep real headroom between Node's new heap ceiling and the
+              # container's actual kill limit. node02 has ample room for this
+              # (32Gi allocatable; cluster-wide limits were at 62% before this
+              # change) — verified live via `kubectl describe node node02`.
+              memory: "8Gi"
               cpu: "4000m"
 
         # ---------------------------------------------------------------
