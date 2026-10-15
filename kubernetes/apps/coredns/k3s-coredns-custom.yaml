@@ -1,0 +1,25 @@
+# Cluster DNS (k3s CoreDNS in kube-system) → authoritative answers for *.homelab.local.
+#
+# k3s's CoreDNS forwards everything it doesn't know to `/etc/resolv.conf` *inside its pod*, which the
+# kubelet snapshots from the node when the pod starts. The router (192.168.87.1) does not know
+# homelab.local, so a CoreDNS replica started while a node pointed at the router answers NXDOMAIN
+# for every *.homelab.local name, while a replica started when the node pointed at 192.168.87.13
+# answers correctly — the two replicas disagreed for months (found 2026-10-15 when Gitea Actions
+# image pushes to gitea.homelab.local failed intermittently).
+#
+# k3s mounts this optional ConfigMap into CoreDNS at /etc/coredns/custom and imports `*.server`
+# files as extra server blocks, so this zone is always sent to the homelab CoreDNS
+# (apps/coredns, MetalLB IP 192.168.87.13 — the same server that owns the hosts list) regardless of
+# what a node's resolver says when the pod happens to start.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  homelab.server: |
+    homelab.local:53 {
+        errors
+        cache 30
+        forward . 192.168.87.13
+    }
