@@ -9,3 +9,4 @@ resources:
   - rbac.yaml
   - metrics-ingress.yaml
   - servicemonitor.yaml
+  - k3s-coredns-custom.yaml
