@@ -1,0 +1,8 @@
+mirrors:
+  "gitea.homelab.local":
+    endpoint:
+      - "https://gitea.homelab.local"
+configs:
+  "gitea.homelab.local":
+    tls:
+      insecure_skip_verify: true
