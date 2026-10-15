@@ -1,0 +1,47 @@
+---
+# Node-level access to the Gitea container registry (gitea.homelab.local).
+#
+# kubelet/containerd pull images with the NODE's resolver and trust store — not cluster DNS — so
+# every k3s node needs all three of these. They were first applied by hand (2026-01, during the
+# Gitea CI migration) and are codified here so a rebuilt node can pull Gitea-hosted images
+# (investment-bot, lab-sync-proxy). Cluster-side DNS for *.homelab.local is handled separately
+# by kubernetes/apps/coredns/k3s-coredns-custom.yaml.
+#
+# Idempotent: on the current cluster `--check --diff` reports no changes.
+- name: Node access to the Gitea container registry
+  hosts: k3s_cluster
+  become: yes
+
+  tasks:
+    - name: Resolve gitea.homelab.local to the Traefik LoadBalancer
+      lineinfile:
+        path: /etc/hosts
+        line: "192.168.87.10 gitea.homelab.local"
+        state: present
+
+    - name: Trust the homelab CA in the system store
+      copy:
+        src: ../../homelab-ca.crt
+        dest: /usr/local/share/ca-certificates/homelab-ca.crt
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Update CA certificates
+
+    - name: containerd mirror config for the Gitea registry
+      copy:
+        src: ../files/k3s-registries.yaml
+        dest: /etc/rancher/k3s/registries.yaml
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart k3s
+
+  handlers:
+    - name: Update CA certificates
+      command: update-ca-certificates
+
+    - name: Restart k3s
+      systemd:
+        name: "{{ 'k3s' if k3s_role == 'master' else 'k3s-agent' }}"
+        state: restarted
